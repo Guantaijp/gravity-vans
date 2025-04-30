@@ -1,28 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 
 /**
- * A hook that returns true if the current device is mobile based on screen width.
- * @param breakpoint The breakpoint to consider as mobile (default: 768px)
- * @returns A boolean indicating if the current device is mobile
+ * Hook to detect if the current device is mobile based on screen width
+ * @param breakpoint - The width threshold to consider a device mobile (default: 768px)
+ * @returns boolean - True if the device is mobile, false otherwise
  */
 export function useIsMobile(breakpoint = 768): boolean {
-    const [isMobile, setIsMobile] = useState(false)
+    const [isMobile, setIsMobile] = useState<boolean>(
+        typeof window !== "undefined" ? window.innerWidth < breakpoint : false,
+    )
 
     useEffect(() => {
-        // Check if window is defined (to avoid SSR issues)
         if (typeof window === "undefined") return
 
-        // Function to update state based on window width
         const checkMobile = () => {
             setIsMobile(window.innerWidth < breakpoint)
         }
 
-        // Initial check
+        // Check on mount and add resize listener
         checkMobile()
-
-        // Add event listener for resize
         window.addEventListener("resize", checkMobile)
 
         // Clean up event listener
