@@ -19,7 +19,6 @@ import { useApi } from "../../hooks/use-api"
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<Customer[]>([])
-    console.log(customers)
     const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
     const [searchQuery, setSearchQuery] = useState("")
 

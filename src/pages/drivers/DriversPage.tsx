@@ -69,7 +69,7 @@ export default function DriversPage() {
             filtered = filtered.filter(
                 (driver) =>
                     driver.name.toLowerCase().includes(lowercaseQuery) ||
-                    driver.phone.includes(query) ||
+                    driver.phoneNumber.includes(query) ||
                     driver.idNumber.includes(query) ||
                     driver.licenseNumber.toLowerCase().includes(lowercaseQuery)
             )
@@ -88,12 +88,15 @@ export default function DriversPage() {
 
     const handleStatusChange = async (id: string, status: Driver["status"]) => {
         try {
-            const updatedDriver = await updateDriverStatus({ id, status }) // ✅ Pass as object
-            setDrivers(drivers.map((driver) => (driver._id === id ? updatedDriver : driver)))
+            const response = await updateDriverStatus({ id, status });
+            const updatedDriver = response.driver; // Extract the driver object from the response
+
+            // Update the state with the updated driver
+            setDrivers(drivers.map((driver) => (driver._id === id ? updatedDriver : driver)));
         } catch (err) {
-            console.error("Error updating driver status:", err)
+            console.error("Error updating driver status:", err);
         }
-    }
+    };
 
     const handleDeleteDriver = async (id: string) => {
         if (window.confirm("Are you sure you want to delete this driver?")) {
@@ -236,7 +239,7 @@ export default function DriversPage() {
                                             <TableCell>
                                                 <div className="flex items-center">
                                                     <Phone className="mr-2 h-3 w-3 text-muted-foreground" />
-                                                    {driver.phone}
+                                                    {driver.phoneNumber}
                                                 </div>
                                             </TableCell>
                                             <TableCell>{driver.idNumber}</TableCell>
