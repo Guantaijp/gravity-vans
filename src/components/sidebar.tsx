@@ -15,7 +15,9 @@ export default function Sidebar() {
         { name: "Vehicles", path: "/vehicles", icon: Car },
         { name: "Bookings", path: "/bookings", icon: Calendar },
         { name: "Customers", path: "/customers", icon: Users },
+        { name: "Drivers", path: "/drivers", icon: Users },
         { name: "Payments", path: "/payments", icon: CreditCard },
+
     ]
 
     return (

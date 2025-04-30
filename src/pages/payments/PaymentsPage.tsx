@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
@@ -28,126 +28,71 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
 import { format } from "date-fns"
 import { cn } from "../../lib/utils"
+import PaymentService, { Payment } from "../../services/payment-service" // Import the PaymentService
 
 export default function PaymentsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [filterStatus, setFilterStatus] = useState("all")
     const [paymentDate, setPaymentDate] = useState<Date>()
     const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false)
+    const [payments, setPayments] = useState<Payment[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    // Mock data for payments
-    const payments = [
-        {
-            id: "P-2023-001",
-            bookingId: "B-2023-001",
-            customer: "John Kamau",
-            date: "2023-04-15",
-            amount: 5000,
-            method: "M-Pesa",
-            reference: "MPESA123456",
-            status: "Completed",
-        },
-        {
-            id: "P-2023-002",
-            bookingId: "B-2023-002",
-            customer: "Mary Wanjiku",
-            date: "2023-04-16",
-            amount: 10000,
-            method: "Bank Transfer",
-            reference: "BT789012",
-            status: "Completed",
-        },
-        {
-            id: "P-2023-003",
-            bookingId: "B-2023-003",
-            customer: "David Ochieng",
-            date: "2023-04-18",
-            amount: 15000,
-            method: "Cash",
-            reference: "CASH345678",
-            status: "Completed",
-        },
-        {
-            id: "P-2023-004",
-            bookingId: "B-2023-004",
-            customer: "Sarah Njeri",
-            date: "2023-04-19",
-            amount: 8000,
-            method: "M-Pesa",
-            reference: "MPESA234567",
-            status: "Pending",
-        },
-        {
-            id: "P-2023-005",
-            bookingId: "B-2023-005",
-            customer: "James Mwangi",
-            date: "2023-04-20",
-            amount: 12000,
-            method: "Credit Card",
-            reference: "CC567890",
-            status: "Completed",
-        },
-        {
-            id: "P-2023-006",
-            bookingId: "B-2023-006",
-            customer: "Lucy Akinyi",
-            date: "2023-04-21",
-            amount: 7000,
-            method: "M-Pesa",
-            reference: "MPESA345678",
-            status: "Failed",
-        },
-        {
-            id: "P-2023-007",
-            bookingId: "B-2023-007",
-            customer: "Peter Njoroge",
-            date: "2023-04-22",
-            amount: 20000,
-            method: "Bank Transfer",
-            reference: "BT456789",
-            status: "Pending",
-        },
-        {
-            id: "P-2023-008",
-            bookingId: "B-2023-008",
-            customer: "Grace Wambui",
-            date: "2023-04-23",
-            amount: 15000,
-            method: "Cash",
-            reference: "CASH678901",
-            status: "Completed",
-        },
-    ]
+    // Fetch payments on component mount
+    useEffect(() => {
+        async function fetchPayments() {
+            try {
+                setIsLoading(true)
+                const data = await PaymentService.getAll()
+                setPayments(data || []) // Ensure we always have an array even if API returns null/undefined
+                setError(null)
+            } catch (err) {
+                setError("Failed to load payments. Please try again later.")
+                console.error("Error fetching payments:", err)
+                setPayments([]) // Initialize to empty array on error
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchPayments()
+    }, [])
 
     // Filter payments based on search term and status filter
-    const filteredPayments = payments.filter((payment) => {
+    const filteredPayments = payments ? payments.filter((payment) => {
         const matchesSearch =
-            payment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            payment.bookingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            payment.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            payment._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (typeof payment.booking === 'object'
+                ? payment.booking._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (payment.booking.customer && payment.booking.customer.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                : payment.booking.toLowerCase().includes(searchTerm.toLowerCase())) ||
             payment.reference.toLowerCase().includes(searchTerm.toLowerCase())
 
         const matchesStatus = filterStatus === "all" || payment.status.toLowerCase() === filterStatus.toLowerCase()
 
         return matchesSearch && matchesStatus
-    })
+    }) : []
 
     // Calculate summary statistics
-    const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0)
+    const totalPayments = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0
     const completedPayments = payments
-        .filter((payment) => payment.status === "Completed")
-        .reduce((sum, payment) => sum + payment.amount, 0)
+        ? payments.filter((payment) => payment.status === "Completed")
+            .reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
     const pendingPayments = payments
-        .filter((payment) => payment.status === "Pending")
-        .reduce((sum, payment) => sum + payment.amount, 0)
+        ? payments.filter((payment) => payment.status === "Pending")
+            .reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
     const failedPayments = payments
-        .filter((payment) => payment.status === "Failed")
-        .reduce((sum, payment) => sum + payment.amount, 0)
+        ? payments.filter((payment) => payment.status === "Failed")
+            .reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
 
     // Get counts for each status
-    const completedCount = payments.filter((payment) => payment.status === "Completed").length
-    const pendingCount = payments.filter((payment) => payment.status === "Pending").length
-    const failedCount = payments.filter((payment) => payment.status === "Failed").length
+    const completedCount = payments ? payments.filter((payment) => payment.status === "Completed").length : 0
+    const pendingCount = payments ? payments.filter((payment) => payment.status === "Pending").length : 0
+    const failedCount = payments ? payments.filter((payment) => payment.status === "Failed").length : 0
 
     // Function to get badge color based on status
     const getStatusBadge = (status: string) => {
@@ -178,7 +123,22 @@ export default function PaymentsPage() {
         }
     }
 
-    // @ts-ignore
+    // Function to get customer name from payment object
+    const getCustomerName = (payment: Payment) => {
+        if (typeof payment.booking === 'object' && payment.booking.customer) {
+            return payment.booking.customer.name
+        }
+        return 'N/A'
+    }
+
+    // Function to get booking ID from payment object
+    const getBookingId = (payment: Payment) => {
+        if (typeof payment.booking === 'object' && payment.booking._id) {
+            return payment.booking._id
+        }
+        return typeof payment.booking === 'string' ? payment.booking : 'N/A'
+    }
+
     return (
         <div className="flex flex-col">
             <header className="border-b">
@@ -236,10 +196,10 @@ export default function PaymentsPage() {
                                                 <SelectValue placeholder="Select method" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="mpesa">M-Pesa</SelectItem>
-                                                <SelectItem value="bank">Bank Transfer</SelectItem>
-                                                <SelectItem value="cash">Cash</SelectItem>
-                                                <SelectItem value="card">Credit Card</SelectItem>
+                                                <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                                <SelectItem value="Cash">Cash</SelectItem>
+                                                <SelectItem value="Credit Card">Credit Card</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -290,13 +250,13 @@ export default function PaymentsPage() {
                                         Status
                                     </Label>
                                     <div className="col-span-3">
-                                        <Select defaultValue="completed">
+                                        <Select defaultValue="Completed">
                                             <SelectTrigger id="status">
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="completed">Completed</SelectItem>
-                                                <SelectItem value="pending">Pending</SelectItem>
+                                                <SelectItem value="Completed">Completed</SelectItem>
+                                                <SelectItem value="Pending">Pending</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -396,79 +356,99 @@ export default function PaymentsPage() {
                             </Button>
                         </CardHeader>
                         <CardContent>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="w-[120px]">
-                                            <div className="flex items-center">
-                                                Payment ID
-                                                <ArrowUpDown className="ml-1 h-3 w-3" />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>Booking ID</TableHead>
-                                        <TableHead>Customer</TableHead>
-                                        <TableHead>
-                                            <div className="flex items-center">
-                                                Date
-                                                <ArrowUpDown className="ml-1 h-3 w-3" />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead className="text-right">
-                                            <div className="flex items-center justify-end">
-                                                Amount
-                                                <ArrowUpDown className="ml-1 h-3 w-3" />
-                                            </div>
-                                        </TableHead>
-                                        <TableHead>Method</TableHead>
-                                        <TableHead>Reference</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {filteredPayments.length === 0 ? (
+                            {isLoading ? (
+                                <div className="text-center py-10">
+                                    <p className="text-muted-foreground">Loading payments...</p>
+                                </div>
+                            ) : error ? (
+                                <div className="text-center py-10">
+                                    <p className="text-destructive mb-4">{error}</p>
+                                    <Button onClick={() => window.location.reload()}>Try Again</Button>
+                                </div>
+                            ) : payments.length === 0 ? (
+                                <div className="text-center py-10">
+                                    <p className="text-muted-foreground mb-4">No payments found. Try adding one.</p>
+                                    <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
+                                        <Link to="/payments/new">
+                                            <Plus className="mr-2 h-4 w-4" /> New Payment
+                                        </Link>
+                                    </Button>
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
                                         <TableRow>
-                                            <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                                                No payments found matching your search criteria
-                                            </TableCell>
+                                            <TableHead className="w-[120px]">
+                                                <div className="flex items-center">
+                                                    Payment ID
+                                                    <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>Booking ID</TableHead>
+                                            <TableHead>Customer</TableHead>
+                                            <TableHead>
+                                                <div className="flex items-center">
+                                                    Date
+                                                    <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead className="text-right">
+                                                <div className="flex items-center justify-end">
+                                                    Amount
+                                                    <ArrowUpDown className="ml-1 h-3 w-3" />
+                                                </div>
+                                            </TableHead>
+                                            <TableHead>Method</TableHead>
+                                            <TableHead>Reference</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
-                                    ) : (
-                                        filteredPayments.map((payment) => (
-                                            <TableRow key={payment.id}>
-                                                <TableCell className="font-medium">{payment.id}</TableCell>
-                                                <TableCell>
-                                                    <Link to={`/bookings/${payment.bookingId}`} className="text-primary hover:underline">
-                                                        {payment.bookingId}
-                                                    </Link>
-                                                </TableCell>
-                                                <TableCell>{payment.customer}</TableCell>
-                                                <TableCell>{payment.date}</TableCell>
-                                                <TableCell className="text-right">KES {payment.amount.toLocaleString()}</TableCell>
-                                                <TableCell>{payment.method}</TableCell>
-                                                <TableCell>{payment.reference}</TableCell>
-                                                <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                <span className="sr-only">Open menu</span>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem>View details</DropdownMenuItem>
-                                                            <DropdownMenuItem>Print receipt</DropdownMenuItem>
-                                                            {payment.status === "Pending" && <DropdownMenuItem>Confirm payment</DropdownMenuItem>}
-                                                            {payment.status === "Failed" && <DropdownMenuItem>Retry payment</DropdownMenuItem>}
-                                                            <DropdownMenuItem className="text-destructive">Void payment</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {filteredPayments.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                                                    No payments found matching your search criteria
                                                 </TableCell>
                                             </TableRow>
-                                        ))
-                                    )}
-                                </TableBody>
-                            </Table>
+                                        ) : (
+                                            filteredPayments.map((payment) => (
+                                                <TableRow key={payment._id}>
+                                                    <TableCell className="font-medium">{payment._id}</TableCell>
+                                                    <TableCell>
+                                                        <Link to={`/bookings/${getBookingId(payment)}`} className="text-primary hover:underline">
+                                                            {getBookingId(payment)}
+                                                        </Link>
+                                                    </TableCell>
+                                                    <TableCell>{getCustomerName(payment)}</TableCell>
+                                                    <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                                                    <TableCell className="text-right">KES {payment.amount.toLocaleString()}</TableCell>
+                                                    <TableCell>{payment.method}</TableCell>
+                                                    <TableCell>{payment.reference}</TableCell>
+                                                    <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                                                    <TableCell className="text-right">
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                                    <span className="sr-only">Open menu</span>
+                                                                    <MoreHorizontal className="h-4 w-4" />
+                                                                </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end">
+                                                                <DropdownMenuItem>View details</DropdownMenuItem>
+                                                                <DropdownMenuItem>Print receipt</DropdownMenuItem>
+                                                                {payment.status === "Pending" && <DropdownMenuItem>Confirm payment</DropdownMenuItem>}
+                                                                {payment.status === "Failed" && <DropdownMenuItem>Retry payment</DropdownMenuItem>}
+                                                                <DropdownMenuItem className="text-destructive">Void payment</DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

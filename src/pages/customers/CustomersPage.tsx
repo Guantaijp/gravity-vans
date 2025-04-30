@@ -1,3 +1,7 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import { Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
@@ -10,99 +14,99 @@ import {
     DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
 import { Avatar, AvatarFallback } from "../../components/ui/avatar"
-import { Link } from "react-router-dom"
+import CustomerService, { type Customer } from "../../services/customer-service"
+import { useApi } from "../../hooks/use-api"
 
 export default function CustomersPage() {
-    const customers = [
-        {
-            id: "C-001",
-            name: "John Kamau",
-            email: "john.kamau@example.com",
-            phone: "+254 712 345 678",
-            location: "Nairobi, Kenya",
-            bookings: 3,
-            totalSpent: "KES 75,000",
-            lastBooking: "2023-04-20",
-        },
-        {
-            id: "C-002",
-            name: "Mary Wanjiku",
-            email: "mary.wanjiku@example.com",
-            phone: "+254 723 456 789",
-            location: "Mombasa, Kenya",
-            bookings: 2,
-            totalSpent: "KES 42,000",
-            lastBooking: "2023-04-22",
-        },
-        {
-            id: "C-003",
-            name: "David Ochieng",
-            email: "david.ochieng@example.com",
-            phone: "+254 734 567 890",
-            location: "Kisumu, Kenya",
-            bookings: 1,
-            totalSpent: "KES 35,000",
-            lastBooking: "2023-04-25",
-        },
-        {
-            id: "C-004",
-            name: "Sarah Njeri",
-            email: "sarah.njeri@example.com",
-            phone: "+254 745 678 901",
-            location: "Nakuru, Kenya",
-            bookings: 1,
-            totalSpent: "KES 32,000",
-            lastBooking: "2023-04-26",
-        },
-        {
-            id: "C-005",
-            name: "James Mwangi",
-            email: "james.mwangi@example.com",
-            phone: "+254 756 789 012",
-            location: "Eldoret, Kenya",
-            bookings: 2,
-            totalSpent: "KES 58,000",
-            lastBooking: "2023-04-15",
-        },
-        {
-            id: "C-006",
-            name: "Lucy Akinyi",
-            email: "lucy.akinyi@example.com",
-            phone: "+254 767 890 123",
-            location: "Nairobi, Kenya",
-            bookings: 1,
-            totalSpent: "KES 28,000",
-            lastBooking: "2023-04-16",
-        },
-        {
-            id: "C-007",
-            name: "Peter Njoroge",
-            email: "peter.njoroge@example.com",
-            phone: "+254 778 901 234",
-            location: "Thika, Kenya",
-            bookings: 1,
-            totalSpent: "KES 40,000",
-            lastBooking: "2023-04-18",
-        },
-        {
-            id: "C-008",
-            name: "Grace Wambui",
-            email: "grace.wambui@example.com",
-            phone: "+254 789 012 345",
-            location: "Mombasa, Kenya",
-            bookings: 1,
-            totalSpent: "KES 35,000",
-            lastBooking: "2023-04-19",
-        },
-    ]
+    const [customers, setCustomers] = useState<Customer[]>([])
+    const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
+    const [searchQuery, setSearchQuery] = useState("")
+
+    const { execute: fetchCustomers, isLoading, error } = useApi(CustomerService.getAll)
+    const { execute: deleteCustomer } = useApi((id?: string) => {
+        if (!id) return Promise.reject(new Error("Customer ID is required"))
+        return CustomerService.delete(id)
+    })
+
+    useEffect(() => {
+        loadCustomers()
+    }, [])
+
+    const loadCustomers = async () => {
+        try {
+            const data = await fetchCustomers()
+            setCustomers(data || [])
+            setFilteredCustomers(data || [])
+        } catch (err) {
+            console.error("Error loading customers:", err)
+        }
+    }
+
+    useEffect(() => {
+        filterCustomers(searchQuery)
+    }, [customers, searchQuery])
+
+    const filterCustomers = (query: string) => {
+        if (!query) {
+            setFilteredCustomers(customers)
+            return
+        }
+
+        const lowercaseQuery = query.toLowerCase()
+        const filtered = customers.filter(
+            (customer) =>
+                customer.name.toLowerCase().includes(lowercaseQuery) ||
+                customer.email.toLowerCase().includes(lowercaseQuery) ||
+                customer.phone.includes(query) ||
+                customer.location.toLowerCase().includes(lowercaseQuery)
+        )
+
+        setFilteredCustomers(filtered)
+    }
+
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value)
+    }
+
+    const handleDeleteCustomer = async (id: string) => {
+        if (window.confirm("Are you sure you want to delete this customer?")) {
+            try {
+                await deleteCustomer(id)
+                setCustomers(customers.filter((customer) => customer._id !== id))
+            } catch (err) {
+                console.error("Error deleting customer:", err)
+            }
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 text-center">
+                <p className="text-red-500">Failed to load customers. Please try again.</p>
+                <Button onClick={loadCustomers} className="mt-4">
+                    Try Again
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <div className="flex flex-col">
             <header className="border-b">
                 <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-2xl font-bold">Customer Management</h1>
-                    <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90">
-                        <Plus className="mr-2 h-4 w-4" /> Add Customer
+                    <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
+                        <Link to="/customers/new">
+                            <Plus className="mr-2 h-4 w-4" /> Add Customer
+                        </Link>
                     </Button>
                 </div>
             </header>
@@ -110,7 +114,13 @@ export default function CustomersPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                     <div className="relative w-full sm:w-auto">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input type="search" placeholder="Search customers..." className="w-full sm:w-[300px] pl-8" />
+                        <Input
+                            type="search"
+                            placeholder="Search customers..."
+                            className="w-full sm:w-[300px] pl-8"
+                            value={searchQuery}
+                            onChange={handleSearch}
+                        />
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button variant="outline" size="sm">
@@ -126,81 +136,109 @@ export default function CustomersPage() {
                         <CardDescription>Manage your customer database and view booking history</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Customer</TableHead>
-                                    <TableHead>Contact</TableHead>
-                                    <TableHead>Location</TableHead>
-                                    <TableHead>Bookings</TableHead>
-                                    <TableHead>Total Spent</TableHead>
-                                    <TableHead>Last Booking</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {customers.map((customer) => (
-                                    <TableRow key={customer.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar>
-                                                    <AvatarFallback className="bg-[#0a192f] text-white">
-                                                        {customer.name
-                                                            .split(" ")
-                                                            .map((n) => n[0])
-                                                            .join("")}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <p className="font-medium">{customer.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{customer.id}</p>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center text-sm">
-                                                    <Mail className="mr-2 h-3 w-3 text-muted-foreground" />
-                                                    {customer.email}
-                                                </div>
-                                                <div className="flex items-center text-sm">
-                                                    <Phone className="mr-2 h-3 w-3 text-muted-foreground" />
-                                                    {customer.phone}
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center">
-                                                <MapPin className="mr-2 h-3 w-3 text-muted-foreground" />
-                                                {customer.location}
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{customer.bookings}</TableCell>
-                                        <TableCell>{customer.totalSpent}</TableCell>
-                                        <TableCell>{customer.lastBooking}</TableCell>
-                                        <TableCell className="text-right">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" className="h-8 w-8 p-0">
-                                                        <span className="sr-only">Open menu</span>
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>View profile</DropdownMenuItem>
-                                                    <DropdownMenuItem>Edit customer</DropdownMenuItem>
-                                                    <DropdownMenuItem>Booking history</DropdownMenuItem>
-                                                    <DropdownMenuItem asChild>
-                                                        <Link to="/bookings/new">Create booking</Link>
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-[#e31c39]">Delete customer</DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </TableCell>
+                        {customers.length === 0 ? (
+                            <div className="text-center py-10">
+                                <p className="text-muted-foreground mb-4">No customers found. Try adding one.</p>
+                                <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
+                                    <Link to="/customers/new">
+                                        <Plus className="mr-2 h-4 w-4" /> Add Customer
+                                    </Link>
+                                </Button>
+                            </div>
+                        ) : filteredCustomers.length === 0 ? (
+                            <div className="text-center py-10">
+                                <p className="text-muted-foreground">No customers found. Try adjusting your search.</p>
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Customer</TableHead>
+                                        <TableHead>Contact</TableHead>
+                                        <TableHead>Location</TableHead>
+                                        <TableHead>Bookings</TableHead>
+                                        <TableHead>Total Spent</TableHead>
+                                        <TableHead>Last Booking</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredCustomers.map((customer) => (
+                                        <TableRow key={customer._id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar>
+                                                        <AvatarFallback className="bg-[#0a192f] text-white">
+                                                            {customer.name
+                                                                .split(" ")
+                                                                .map((n) => n[0])
+                                                                .join("")}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className="font-medium">{customer.name}</p>
+                                                        <p className="text-xs text-muted-foreground">{customer._id}</p>
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center text-sm">
+                                                        <Mail className="mr-2 h-3 w-3 text-muted-foreground" />
+                                                        {customer.email}
+                                                    </div>
+                                                    <div className="flex items-center text-sm">
+                                                        <Phone className="mr-2 h-3 w-3 text-muted-foreground" />
+                                                        {customer.phone}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center">
+                                                    <MapPin className="mr-2 h-3 w-3 text-muted-foreground" />
+                                                    {customer.location}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>{customer.bookings || 0}</TableCell>
+                                            <TableCell>
+                                                {customer.totalSpent ? `KES ${customer.totalSpent.toLocaleString()}` : "KES 0"}
+                                            </TableCell>
+                                            <TableCell>{customer.lastBooking || "N/A"}</TableCell>
+                                            <TableCell className="text-right">
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                                            <span className="sr-only">Open menu</span>
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to={`/customers/${customer._id}`}>View profile</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to={`/customers/${customer._id}/edit`}>Edit customer</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to={`/bookings?customerId=${customer._id}`}>Booking history</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link to={`/bookings/new?customerId=${customer._id}`}>Create booking</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            className="text-[#e31c39]"
+                                                            onClick={() => handleDeleteCustomer(customer._id)}
+                                                        >
+                                                            Delete customer
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        )}
                     </CardContent>
                 </Card>
             </main>

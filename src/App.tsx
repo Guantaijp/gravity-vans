@@ -16,6 +16,7 @@ import CustomersPage from "./pages/customers/CustomersPage";
 import PaymentsPage from "./pages/payments/PaymentsPage";
 import PaymentDetailsPage from "./pages/payments/PaymentsDetailsPage";
 import RecordPaymentPage from "./pages/payments/RecordPaymentPage";
+import DriversPage from "./pages/drivers/DriversPage"
 
 function App() {
     return (
@@ -49,6 +50,13 @@ function App() {
                         <Route path="payments" element={<PaymentsPage />} />
                         <Route path="payments/new" element={<RecordPaymentPage />} />
                         <Route path="payments/:id" element={<PaymentDetailsPage />} />
+
+                        <Route path="drivers">
+                            <Route index element={<DriversPage />} />
+                            <Route path="new" element={<div>New Driver Page</div>} />
+                            <Route path=":id" element={<div>Driver Details Page</div>} />
+                            <Route path=":id/edit" element={<div>Edit Driver Page</div>} />
+                        </Route>
                     </Route>
 
                     {/* Catch all - redirect to login */}
