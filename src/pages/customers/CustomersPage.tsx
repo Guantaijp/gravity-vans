@@ -19,6 +19,7 @@ import { useApi } from "../../hooks/use-api"
 
 export default function CustomersPage() {
     const [customers, setCustomers] = useState<Customer[]>([])
+    console.log(customers)
     const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([])
     const [searchQuery, setSearchQuery] = useState("")
 
@@ -55,7 +56,7 @@ export default function CustomersPage() {
         const lowercaseQuery = query.toLowerCase()
         const filtered = customers.filter(
             (customer) =>
-                customer.name.toLowerCase().includes(lowercaseQuery) ||
+                customer.fullName.toLowerCase().includes(lowercaseQuery) ||
                 customer.email.toLowerCase().includes(lowercaseQuery) ||
                 customer.phone.includes(query) ||
                 customer.location.toLowerCase().includes(lowercaseQuery)
@@ -169,14 +170,14 @@ export default function CustomersPage() {
                                                 <div className="flex items-center gap-3">
                                                     <Avatar>
                                                         <AvatarFallback className="bg-[#0a192f] text-white">
-                                                            {customer.name
+                                                            {customer.fullName
                                                                 .split(" ")
                                                                 .map((n) => n[0])
                                                                 .join("")}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div>
-                                                        <p className="font-medium">{customer.name}</p>
+                                                        <p className="font-medium">{customer.fullName}</p>
                                                         <p className="text-xs text-muted-foreground">{customer._id}</p>
                                                     </div>
                                                 </div>
@@ -216,9 +217,9 @@ export default function CustomersPage() {
                                                         <DropdownMenuItem asChild>
                                                             <Link to={`/customers/${customer._id}`}>View profile</Link>
                                                         </DropdownMenuItem>
-                                                        <DropdownMenuItem asChild>
-                                                            <Link to={`/customers/${customer._id}/edit`}>Edit customer</Link>
-                                                        </DropdownMenuItem>
+                                                        {/*<DropdownMenuItem asChild>*/}
+                                                        {/*    <Link to={`/customers/${customer._id}/edit`}>Edit customer</Link>*/}
+                                                        {/*</DropdownMenuItem>*/}
                                                         <DropdownMenuItem asChild>
                                                             <Link to={`/bookings?customerId=${customer._id}`}>Booking history</Link>
                                                         </DropdownMenuItem>

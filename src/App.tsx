@@ -13,14 +13,18 @@ import BookingDetailsPage from "./pages/bookings/BookingDetailsPage";
 import EditBookingPage from "./pages/bookings/EditBookingPage";
 import InvoicePage from "./pages/bookings/InvoicePage";
 import CustomersPage from "./pages/customers/CustomersPage";
+import AddCustomerPage from "./pages/customers/AddCustomerPage";
+import CustomerProfilePage from "./pages/customers/CustomerProfilePage";
 import PaymentsPage from "./pages/payments/PaymentsPage";
 import PaymentDetailsPage from "./pages/payments/PaymentsDetailsPage";
 import RecordPaymentPage from "./pages/payments/RecordPaymentPage";
 import DriversPage from "./pages/drivers/DriversPage"
+import { Toaster } from 'sonner'
 
 function App() {
     return (
         <AuthProvider>
+            <Toaster richColors position="top-right" />
             {/*<Router>*/}
                 <Routes>
                     {/* Public routes */}
@@ -45,6 +49,8 @@ function App() {
 
                         {/* Customers routes */}
                         <Route path="customers" element={<CustomersPage />} />
+                        <Route path="customers/new" element={<AddCustomerPage />} />
+                        <Route path="customers/:id" element={<CustomerProfilePage />} />
 
                         {/* Payments routes */}
                         <Route path="payments" element={<PaymentsPage />} />

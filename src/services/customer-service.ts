@@ -2,7 +2,7 @@ import api from "./api"
 
 export interface Customer {
     _id: string
-    name: string
+    fullName: string
     email: string
     phone: string
     location: string
@@ -16,7 +16,7 @@ export interface Customer {
 }
 
 export interface CustomerInput {
-    name: string
+    fullName: string
     email: string
     phone: string
     location: string
@@ -26,23 +26,23 @@ export interface CustomerInput {
 
 const CustomerService = {
     async getAll(): Promise<Customer[]> {
-        const response = await api.get<{ customers: Customer[] }>("/customers")
-        return response.data.customers
+        const response = await api.get<Customer[]>("/customers")
+        return response.data
     },
 
     async getById(id: string): Promise<Customer> {
-        const response = await api.get<{ customer: Customer }>(`/customers/${id}`)
-        return response.data.customer
+        const response = await api.get<Customer>(`/customers/${id}`)
+        return response.data
     },
 
     async create(customerData: CustomerInput): Promise<Customer> {
-        const response = await api.post<{ customer: Customer }>("/customers", customerData)
-        return response.data.customer
+        const response = await api.post<Customer>("/customers", customerData)
+        return response.data
     },
 
-    async update(id: string, customerData: Partial<CustomerInput>): Promise<Customer> {
-        const response = await api.put<{ customer: Customer }>(`/customers/${id}`, customerData)
-        return response.data.customer
+    async update(id: string, data: CustomerInput): Promise<Customer> {
+        const response = await api.put<Customer>(`/customers/${id}`, data)
+        return response.data
     },
 
     async delete(id: string): Promise<void> {
