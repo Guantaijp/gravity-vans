@@ -97,6 +97,11 @@ const BookingService = {
         const response = await api.get<{ bookings: Booking[] }>(`/bookings/customer/${customerId}`)
         return response.data.bookings
     },
+
+    // async getBookingsByDriver(driverId: string | undefined): Promise<Booking[]> {
+    //     const response = await api.get<{ bookings: Booking[] }>(`/bookings/driver/${driverId}`)
+    //     return response.data.bookings
+    // },
 }
 
 export default BookingService

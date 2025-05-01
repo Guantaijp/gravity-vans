@@ -21,6 +21,8 @@ import RecordPaymentPage from "./pages/payments/RecordPaymentPage";
 import DriversPage from "./pages/drivers/DriversPage"
 import { Toaster } from 'sonner'
 import NewDriverPage from "./pages/drivers/NewDriverPage.tsx";
+import DriverDetailsPage from "./pages/drivers/DriverDetailsPage.tsx";
+import DriverEditPage from "./pages/drivers/DriverEditPage.tsx";
 
 function App() {
     return (
@@ -61,8 +63,8 @@ function App() {
                         <Route path="drivers">
                             <Route index element={<DriversPage />} />
                             <Route path="new" element={<NewDriverPage/>} />
-                            <Route path=":id" element={<div>Driver Details Page</div>} />
-                            <Route path=":id/edit" element={<div>Edit Driver Page</div>} />
+                            <Route path=":id" element={<DriverDetailsPage/>} />
+                            <Route path=":id/edit" element={<DriverEditPage/>} />
                         </Route>
                     </Route>
 
