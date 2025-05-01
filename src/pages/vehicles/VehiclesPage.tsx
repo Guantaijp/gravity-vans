@@ -9,7 +9,7 @@ import { Card, CardContent } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Badge } from "../../components/ui/badge"
-import { Search, Plus, Filter, Calendar, Users, Car, Settings, MoreVertical } from "lucide-react"
+import { Search, Plus, Filter, Users, Car,  MoreVertical } from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -170,20 +170,20 @@ export default function VehiclesPage() {
                         <p className="text-muted-foreground">No vehicles found. Try adjusting your search or filters.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {filteredVehicles?.map((vehicle) => (
                             <Card key={vehicle._id} className="overflow-hidden">
                                 <div className="relative">
                                     <img
-                                        src={vehicle.image || "/placeholder.svg?height=200&width=300"}
+                                        src={vehicle.imageUrl || "/placeholder.svg?height=200&width=300"}
                                         alt={vehicle.name}
                                         className="w-full h-48 object-cover"
                                     />
                                     <Badge
                                         className={`absolute top-2 right-2 ${
-                                            vehicle.status === "Available"
+                                            vehicle.status === "available"
                                                 ? "bg-green-500"
-                                                : vehicle.status === "Booked"
+                                                : vehicle.status === "booked"
                                                     ? "bg-[#0a192f]"
                                                     : "bg-[#e31c39]"
                                         }`}
@@ -227,14 +227,7 @@ export default function VehiclesPage() {
                                             <Users className="h-4 w-4 mr-2 text-muted-foreground" />
                                             <span className="text-sm">{vehicle.capacity} Seater</span>
                                         </div>
-                                        <div className="flex items-center">
-                                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                                            <span className="text-sm">KES {vehicle.dailyRate.toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex items-center">
-                                            <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
-                                            <span className="text-sm">{vehicle.fuel}</span>
-                                        </div>
+
                                     </div>
 
                                     <div className="mt-4 flex justify-between">
@@ -244,7 +237,7 @@ export default function VehiclesPage() {
                                         <Button
                                             size="sm"
                                             className="w-[48%] bg-[#e31c39] hover:bg-[#e31c39]/90"
-                                            disabled={vehicle.status !== "Available"}
+                                            disabled={vehicle.status !== "available"}
                                             asChild
                                         >
                                             <Link to={`/bookings/new?vehicleId=${vehicle._id}`}>Book Now</Link>

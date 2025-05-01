@@ -21,7 +21,7 @@ export default function NewDriverPage() {
         idNumber: "",
         licenseNumber: "",
         psvNumber: "",
-        photoId: "",
+        // photoId: "",
         status: "active" as "active" | "inactive" | "on-leave" | "suspended",
         hireDate: "",
         // notes: "",
@@ -50,35 +50,38 @@ export default function NewDriverPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!driverData.name || !driverData.phoneNumber || !driverData.licenseNumber || !driverData.psvNumber || !photoFile) {
-            toast.error("Please fill in all required fields and upload a photo.");
+        if (!photoFile) {
+            toast.error("Please upload a photo.");
             return;
         }
 
-        setIsLoading(true);
-        const formData = new FormData();
+        // Basic validation
+        const requiredFields = ["name", "phoneNumber", "idNumber", "licenseNumber", "psvNumber", "hireDate"];
+        for (const field of requiredFields) {
+            if (!(driverData as any)[field]) {
+                toast.error(`Please fill in the ${field}`);
+                return;
+            }
+        }
 
+        setIsLoading(true);
+
+        const formData = new FormData();
         Object.entries(driverData).forEach(([key, value]) => {
             formData.append(key, value);
         });
 
-        formData.append("photoId", photoFile);
+        formData.append("photoId", photoFile); // must match backend multer field
 
         try {
-            const response = await DriverService.create(formData);
-
-            const newDriver = response;
-            console.log(newDriver);
-
-            toast.success("Driver added successfully", {
-                description: `Driver has been added to the system.`,
-            });
-
+            const response = await DriverService.create(formData); // Should be a POST request with multipart/form-data
+            console.log(response)
+            toast.success("Driver added successfully");
             navigate("/drivers");
         } catch (err: any) {
-            console.error("Failed to add driver:", err);
+            console.error(err);
             toast.error("Failed to add driver", {
-                description: err.message || "There was a problem adding the driver. Please try again.",
+                description: err?.response?.data?.message || err.message,
             });
         } finally {
             setIsLoading(false);
