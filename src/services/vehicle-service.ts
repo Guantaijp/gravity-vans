@@ -56,8 +56,8 @@ const VehicleService = {
     },
 
     async getById(id: string): Promise<Vehicle> {
-        const response = await api.get<{ vehicle: Vehicle }>(`/vehicles/${id}`)
-        return response.data.vehicle
+        const response = await api.get< Vehicle >(`/vehicles/${id}`)
+        return response.data
     },
 
     async create(vehicleData: VehicleInput, imageFile?: File | null): Promise<Vehicle> {

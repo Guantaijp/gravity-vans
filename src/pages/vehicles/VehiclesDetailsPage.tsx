@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
@@ -7,61 +8,87 @@ import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { ChevronLeft, Edit, Calendar, Users, Car, Fuel, Wrench, FileText } from "lucide-react"
+import VehicleService, { type Vehicle } from "../../services/vehicle-service"
+import { useApi } from "../../hooks/use-api"
 
 export default function VehicleDetailsPage() {
     const { id } = useParams<{ id: string }>()
+    const [vehicle, setVehicle] =  useState<Vehicle>()
 
-    // Mock data for a specific vehicle
-    const vehicle = {
-        id,
-        name: "Toyota Hiace",
-        type: "Van",
-        capacity: "14 Seater",
-        licensePlate: "KCB 123A",
-        status: "Available",
-        dailyRate: "KES 8,000",
-        make: "Toyota",
-        model: "Hiace",
-        year: "2022",
-        fuel: "Diesel",
-        transmission: "Manual",
-        insurance: "INS-2023-456",
-        insuranceExpiry: "2024-06-30",
-        description:
-            "The Toyota HiAce is a versatile and reliable van perfect for group transportation. This 14-seater model features comfortable seating, air conditioning, and ample luggage space, making it ideal for airport transfers, corporate events, and group tours around Kenya.",
-        features: [
-            "Air Conditioning",
-            "Power Steering",
-            "AM/FM Radio",
-            "USB Charging Ports",
-            "Seat Belts for All Passengers",
-            "Luggage Space",
-            "First Aid Kit",
-        ],
-        maintenanceHistory: [
-            { date: "2023-03-15", type: "Oil Change", cost: "KES 5,000", notes: "Regular maintenance" },
-            { date: "2023-01-20", type: "Tire Replacement", cost: "KES 32,000", notes: "Replaced all four tires" },
-            { date: "2022-11-05", type: "Brake Service", cost: "KES 12,000", notes: "Replaced brake pads" },
-        ],
-        bookingHistory: [
-            { id: "B-2023-001", customer: "John Kamau", startDate: "2023-04-20", endDate: "2023-04-30", status: "Completed" },
-            {
-                id: "B-2023-005",
-                customer: "James Mwangi",
-                startDate: "2023-04-15",
-                endDate: "2023-04-25",
-                status: "Completed",
-            },
-            {
-                id: "B-2023-012",
-                customer: "Lucy Akinyi",
-                startDate: "2023-03-10",
-                endDate: "2023-03-15",
-                status: "Completed",
-            },
-        ],
-        image: "/placeholder.svg?height=300&width=500",
+    // Fetch vehicle data using the service
+    const { execute: fetchVehicle, isLoading, error } = useApi((id) => {
+        if (!id) return Promise.reject(new Error('ID is required'));
+        return VehicleService.getById(id);
+    });
+
+    // Mock data for booking and maintenance history (would normally come from API)
+    const bookingHistory = [
+        { id: "B-2023-001", customer: "John Kamau", startDate: "2023-04-20", endDate: "2023-04-30", status: "Completed" },
+        { id: "B-2023-005", customer: "James Mwangi", startDate: "2023-04-15", endDate: "2023-04-25", status: "Completed" },
+        { id: "B-2023-012", customer: "Lucy Akinyi", startDate: "2023-03-10", endDate: "2023-03-15", status: "Completed" },
+    ]
+
+    const maintenanceHistory = [
+        { date: "2023-03-15", type: "Oil Change", cost: "KES 5,000", notes: "Regular maintenance" },
+        { date: "2023-01-20", type: "Tire Replacement", cost: "KES 32,000", notes: "Replaced all four tires" },
+        { date: "2022-11-05", type: "Brake Service", cost: "KES 12,000", notes: "Replaced brake pads" },
+    ]
+
+    useEffect(() => {
+        if (id) {
+            loadVehicle()
+        }
+    }, [id])
+
+    const loadVehicle = async () => {
+        try {
+            const data = await fetchVehicle(id)
+            setVehicle(data)
+        } catch (err) {
+            console.error("Error loading vehicle details:", err)
+        }
     }
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="p-4 text-center">
+                <p className="text-red-500">Failed to load vehicle details. Please try again.</p>
+                <Button onClick={loadVehicle} className="mt-4">
+                    Try Again
+                </Button>
+            </div>
+        )
+    }
+
+    if (!vehicle) {
+        return null
+    }
+
+    // Helper function to get the badge color based on status
+    const getStatusBadgeColor = (status?: string) => {
+        if (!status) return "bg-gray-500"
+
+        switch (status.toLowerCase()) {
+            case "available":
+                return "bg-green-500"
+            case "booked":
+                return "bg-[#0a192f]"
+            case "maintenance":
+            case "out-of-service":
+                return "bg-[#e31c39]"
+            default:
+                return "bg-gray-500"
+        }
+    }
+
 
     return (
         <div className="flex flex-col">
@@ -81,7 +108,7 @@ export default function VehicleDetailsPage() {
                             </Link>
                         </Button>
                         <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
-                            <Link to="/bookings/new">Create Booking</Link>
+                            <Link to={`/bookings/new?vehicleId=${id}`}>Create Booking</Link>
                         </Button>
                     </div>
                 </div>
@@ -92,20 +119,12 @@ export default function VehicleDetailsPage() {
                         <Card>
                             <div className="relative">
                                 <img
-                                    src={vehicle.image || "/placeholder.svg"}
+                                    src={vehicle.imageUrl || "/placeholder.svg?height=300&width=500"}
                                     alt={vehicle.name}
                                     className="w-full h-64 object-cover rounded-t-lg"
                                 />
-                                <Badge
-                                    className={`absolute top-4 right-4 ${
-                                        vehicle.status === "Available"
-                                            ? "bg-green-500"
-                                            : vehicle.status === "Booked"
-                                                ? "bg-[#0a192f]"
-                                                : "bg-[#e31c39]"
-                                    }`}
-                                >
-                                    {vehicle.status}
+                                <Badge className={`absolute top-4 right-4 ${getStatusBadgeColor(vehicle.status)}`}>
+                                    {vehicle.status ? vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1) : "Unknown"}
                                 </Badge>
                             </div>
                             <CardHeader>
@@ -113,12 +132,8 @@ export default function VehicleDetailsPage() {
                                     <div>
                                         <CardTitle className="text-2xl">{vehicle.name}</CardTitle>
                                         <CardDescription>
-                                            {vehicle.type} • {vehicle.capacity}
+                                            {vehicle.type} • {vehicle.capacity} Seater
                                         </CardDescription>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-lg font-bold">{vehicle.dailyRate}</p>
-                                        <p className="text-sm text-muted-foreground">per day</p>
                                     </div>
                                 </div>
                             </CardHeader>
@@ -137,7 +152,7 @@ export default function VehicleDetailsPage() {
                                     <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
                                         <Users className="h-5 w-5 mb-1 text-[#e31c39]" />
                                         <span className="text-xs text-muted-foreground">Capacity</span>
-                                        <span className="text-sm font-medium">{vehicle.capacity}</span>
+                                        <span className="text-sm font-medium">{vehicle.capacity} Seater</span>
                                     </div>
                                     <div className="flex flex-col items-center p-3 bg-muted rounded-lg">
                                         <Fuel className="h-5 w-5 mb-1 text-[#e31c39]" />
@@ -151,17 +166,19 @@ export default function VehicleDetailsPage() {
                                     <p className="text-sm text-muted-foreground">{vehicle.description}</p>
                                 </div>
 
-                                <div>
-                                    <h3 className="font-medium mb-2">Features</h3>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        {vehicle.features.map((feature, index) => (
-                                            <div key={index} className="flex items-center text-sm">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-[#e31c39] mr-2"></div>
-                                                {feature}
-                                            </div>
-                                        ))}
+                                {vehicle.features && vehicle.features.length > 0 && (
+                                    <div>
+                                        <h3 className="font-medium mb-2">Features</h3>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {vehicle.features.map((feature, index) => (
+                                                <div key={index} className="flex items-center text-sm">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-[#e31c39] mr-2"></div>
+                                                    {feature}
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -189,24 +206,32 @@ export default function VehicleDetailsPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {vehicle.bookingHistory.map((booking) => (
-                                                    <TableRow key={booking.id}>
-                                                        <TableCell className="font-medium">{booking.id}</TableCell>
-                                                        <TableCell>{booking.customer}</TableCell>
-                                                        <TableCell>{booking.startDate}</TableCell>
-                                                        <TableCell>{booking.endDate}</TableCell>
-                                                        <TableCell>
-                                                            <Badge variant="outline" className="border-blue-500 text-blue-500">
-                                                                {booking.status}
-                                                            </Badge>
-                                                        </TableCell>
-                                                        <TableCell className="text-right">
-                                                            <Button variant="ghost" size="sm" asChild>
-                                                                <Link to={`/bookings/${booking.id}`}>View</Link>
-                                                            </Button>
+                                                {bookingHistory.length > 0 ? (
+                                                    bookingHistory.map((booking) => (
+                                                        <TableRow key={booking.id}>
+                                                            <TableCell className="font-medium">{booking.id}</TableCell>
+                                                            <TableCell>{booking.customer}</TableCell>
+                                                            <TableCell>{booking.startDate}</TableCell>
+                                                            <TableCell>{booking.endDate}</TableCell>
+                                                            <TableCell>
+                                                                <Badge variant="outline" className="border-blue-500 text-blue-500">
+                                                                    {booking.status}
+                                                                </Badge>
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Button variant="ghost" size="sm" asChild>
+                                                                    <Link to={`/bookings/${booking.id}`}>View</Link>
+                                                                </Button>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={6} className="text-center py-4 text-sm text-muted-foreground">
+                                                            No booking history available
                                                         </TableCell>
                                                     </TableRow>
-                                                ))}
+                                                )}
                                             </TableBody>
                                         </Table>
                                     </CardContent>
@@ -229,14 +254,22 @@ export default function VehicleDetailsPage() {
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
-                                                {vehicle.maintenanceHistory.map((record, index) => (
-                                                    <TableRow key={index}>
-                                                        <TableCell>{record.date}</TableCell>
-                                                        <TableCell>{record.type}</TableCell>
-                                                        <TableCell>{record.cost}</TableCell>
-                                                        <TableCell>{record.notes}</TableCell>
+                                                {maintenanceHistory.length > 0 ? (
+                                                    maintenanceHistory.map((record, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>{record.date}</TableCell>
+                                                            <TableCell>{record.type}</TableCell>
+                                                            <TableCell>{record.cost}</TableCell>
+                                                            <TableCell>{record.notes}</TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={4} className="text-center py-4 text-sm text-muted-foreground">
+                                                            No maintenance history available
+                                                        </TableCell>
                                                     </TableRow>
-                                                ))}
+                                                )}
                                             </TableBody>
                                         </Table>
                                     </CardContent>
@@ -268,7 +301,7 @@ export default function VehicleDetailsPage() {
                                     <div className="font-medium">{vehicle.type}</div>
 
                                     <div className="text-muted-foreground">Capacity:</div>
-                                    <div className="font-medium">{vehicle.capacity}</div>
+                                    <div className="font-medium">{vehicle.capacity} Seater</div>
 
                                     <div className="text-muted-foreground">Fuel Type:</div>
                                     <div className="font-medium">{vehicle.fuel}</div>
@@ -281,6 +314,27 @@ export default function VehicleDetailsPage() {
 
                                     <div className="text-muted-foreground">Insurance Expiry:</div>
                                     <div className="font-medium">{vehicle.insuranceExpiry}</div>
+
+                                    {vehicle.speedGovernor && (
+                                        <>
+                                            <div className="text-muted-foreground">Speed Governor:</div>
+                                            <div className="font-medium">{vehicle.speedGovernor}</div>
+                                        </>
+                                    )}
+
+                                    {vehicle.speedGovernorExpiry && (
+                                        <>
+                                            <div className="text-muted-foreground">Speed Gov. Expiry:</div>
+                                            <div className="font-medium">{vehicle.speedGovernorExpiry}</div>
+                                        </>
+                                    )}
+
+                                    {vehicle.roadServiceLicense && (
+                                        <>
+                                            <div className="text-muted-foreground">Road Service License:</div>
+                                            <div className="font-medium">{vehicle.roadServiceLicense}</div>
+                                        </>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -304,8 +358,12 @@ export default function VehicleDetailsPage() {
                                 <CardTitle>Quick Actions</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
-                                <Button className="w-full bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
-                                    <Link to="/bookings/new">
+                                <Button
+                                    className="w-full bg-[#e31c39] hover:bg-[#e31c39]/90"
+                                    disabled={vehicle.status !== "available"}
+                                    asChild
+                                >
+                                    <Link to={`/bookings/new?vehicleId=${id}`}>
                                         <Calendar className="mr-2 h-4 w-4" />
                                         Book This Vehicle
                                     </Link>

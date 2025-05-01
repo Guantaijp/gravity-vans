@@ -99,7 +99,7 @@ export default function NewVehiclePage() {
             // Generate a name if not provided
             const name = form.name || `${form.make} ${form.model} - ${form.licensePlate}`
 
-            // Create a FormData object directly
+            // Create a FormData object
             const formData = new FormData()
 
             // Add all the vehicle data fields
@@ -108,21 +108,23 @@ export default function NewVehiclePage() {
                 make: form.make,
                 model: form.model,
                 year: form.year,
-                type: form.type,
+                type: form.type || "",
                 licensePlate: form.licensePlate,
-                capacity: form.capacity,
-                seatSize: form.seatSize,
+                capacity: form.capacity || 0,
+                seatSize: form.seatSize || "",
                 dailyRate: form.dailyRate || 0,
-                status: form.status,
-                fuel: form.fuel,
-                transmission: form.transmission,
-                insurance: form.insurance,
-                insuranceExpiry: form.insuranceExpiry,
-                roadServiceLicense: form.roadServiceLicense,
-                speedGovernor: form.speedGovernor,
-                speedGovernorExpiry: form.speedGovernorExpiry,
-                description: form.description,
+                status: form.status || "available",
+                fuel: form.fuel || "",
+                transmission: form.transmission || "",
+                insurance: form.insurance || "",
+                insuranceExpiry: form.insuranceExpiry || "",
+                roadServiceLicense: form.roadServiceLicense || "",
+                speedGovernor: form.speedGovernor || "",
+                speedGovernorExpiry: form.speedGovernorExpiry || "",
+                description: form.description || "",
                 features: form.features || [],
+                mileage: 0,
+                notes: ""
             }
 
             // If it's outsourced, add owner details to the description
@@ -130,18 +132,23 @@ export default function NewVehiclePage() {
                 vehicleData.description = `Owner: ${form.ownerName}, Contact: ${form.ownerContact}\n${vehicleData.description}`
             }
 
-            // Add the vehicle data fields directly to FormData
-            // This is the key change - don't nest data in a JSON string
+            // Add each field individually to FormData
             Object.entries(vehicleData).forEach(([key, value]) => {
                 // Special handling for arrays like features
                 if (Array.isArray(value)) {
-                    value.forEach((item, index) => {
-                        formData.append(`${key}[${index}]`, item);
-                    });
+                    if (value.length === 0) {
+                        // If array is empty, still add it as an empty array identifier
+                        formData.append(`${key}`, "")
+                    } else {
+                        value.forEach((item, index) => {
+                            formData.append(`${key}[${index}]`, item)
+                        })
+                    }
                 } else {
-                    formData.append(key, String(value));
+                    // Convert all values to strings
+                    formData.append(key, String(value))
                 }
-            });
+            })
 
             // Add the image file if provided
             if (imageFile) {
@@ -203,7 +210,6 @@ export default function NewVehiclePage() {
             setIsLoading(false)
         }
     }
-
 
     // Function to handle specific seat size options based on vehicle type
     const getSeatSizeOptions = () => {
