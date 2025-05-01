@@ -313,7 +313,7 @@ export default function VehicleDetailsPage() {
                                     <div className="font-medium">{vehicle.insurance}</div>
 
                                     <div className="text-muted-foreground">Insurance Expiry:</div>
-                                    <div className="font-medium">{vehicle.insuranceExpiry}</div>
+                                    <div className="font-medium"> {new Date(vehicle.insuranceExpiry).toLocaleDateString()}</div>
 
                                     {vehicle.speedGovernor && (
                                         <>
@@ -325,7 +325,7 @@ export default function VehicleDetailsPage() {
                                     {vehicle.speedGovernorExpiry && (
                                         <>
                                             <div className="text-muted-foreground">Speed Gov. Expiry:</div>
-                                            <div className="font-medium">{vehicle.speedGovernorExpiry}</div>
+                                            <div className="font-medium">{new Date(vehicle.speedGovernorExpiry).toLocaleDateString()}</div>
                                         </>
                                     )}
 

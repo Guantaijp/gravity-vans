@@ -23,6 +23,7 @@ import { Toaster } from 'sonner'
 import NewDriverPage from "./pages/drivers/NewDriverPage.tsx";
 import DriverDetailsPage from "./pages/drivers/DriverDetailsPage.tsx";
 import DriverEditPage from "./pages/drivers/DriverEditPage.tsx";
+import VehicleEditPage from "./pages/vehicles/VehicleEditPage.tsx";
 
 function App() {
     return (
@@ -42,6 +43,7 @@ function App() {
                         <Route path="vehicles" element={<VehiclesPage />} />
                         <Route path="vehicles/new" element={<NewVehiclePage />} />
                         <Route path="vehicles/:id" element={<VehicleDetailsPage />} />
+                        <Route path="vehicles/:id/edit" element={<VehicleEditPage />}/>
 
                         {/* Bookings routes */}
                         <Route path="bookings" element={<BookingsPage />} />

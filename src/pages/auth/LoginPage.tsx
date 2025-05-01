@@ -55,7 +55,7 @@ export default function LoginPage() {
             <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white">
                 <div className="w-full max-w-md">
                     <div className="text-center mb-8">
-                        <img src={logo || "/placeholder.svg"} alt="Gravity Vans Logo" className="h-20 w-auto mx-auto mb-6" />
+                        <img src={logo || "/placeholder.svg"} alt="Gravity Vans Logo" className="h-32 w-auto mx-auto mb-6" />
                         <h1 className="text-3xl font-bold text-gray-800">Welcome back</h1>
                         <p className="text-gray-600 mt-2 text-lg">Sign in to your account to continue</p>
                     </div>
