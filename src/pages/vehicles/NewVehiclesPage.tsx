@@ -165,7 +165,8 @@ export default function NewVehiclePage() {
             // Make the API request with the correct endpoint
             const token = localStorage.getItem("gravity_vans_token")
 
-            const response = await fetch("http://localhost:5000/api/vehicles", {
+            // const response = await fetch("http://localhost:5000/api/vehicles", {
+            const response = await fetch("https://gravity-backend-beige.vercel.app/api/vehicles", {
                 method: "POST",
                 headers: token ? {
                     Authorization: `Bearer ${token}`,
