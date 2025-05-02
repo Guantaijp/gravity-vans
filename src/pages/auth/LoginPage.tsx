@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { useAuth } from "../../contexts/auth-context"
 import logo from "../../../public/Gravity-logo-400x400.png"
+import bgImg from "../../../public/14-Seater-Vans-for-Hire-Kenya-lineup.jpg"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
@@ -40,7 +41,7 @@ export default function LoginPage() {
             <div className="hidden lg:block lg:w-1/2">
                 <div
                     className="h-full w-full bg-cover bg-center"
-                    style={{ backgroundImage: "url('../../../public/14-Seater-Vans-for-Hire-Kenya-lineup.jpg')" }}
+                    style={{ backgroundImage: `url(${bgImg})` }}
                 >
                     <div className="h-full w-full bg-black/40 flex flex-col justify-end p-12">
                         <h2 className="text-white text-4xl font-bold mb-3">Gravity Vans Management</h2>
