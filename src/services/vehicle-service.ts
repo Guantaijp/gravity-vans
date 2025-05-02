@@ -24,6 +24,9 @@ export interface Vehicle {
     imageUrl: string
     createdAt: string
     updatedAt: string
+    ownershipType?:string
+    ownerName?: string
+    ownerContact?: string
 }
 
 export interface VehicleInput {
