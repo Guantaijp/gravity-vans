@@ -7,9 +7,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
-import { ChevronLeft, Edit, Calendar, Users, Car, Fuel, Wrench, FileText } from "lucide-react"
+import { ChevronLeft, Edit, Calendar, Users, Car, Fuel,  } from "lucide-react"
 import VehicleService, { type Vehicle } from "../../services/vehicle-service"
 import { useApi } from "../../hooks/use-api"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "../../components/ui/dialog"
+import { Label } from "../../components/ui/label"
+import { Input } from "../../components/ui/input"
+import { Textarea } from "../../components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
 
 export default function VehicleDetailsPage() {
     const { id } = useParams<{ id: string }>()
@@ -17,12 +29,21 @@ export default function VehicleDetailsPage() {
     const [bookingHistory, setBookingHistory] = useState<any[]>([])
     const [loadingBookings, setLoadingBookings] = useState(false)
     const [bookingError, setBookingError] = useState<Error | null>(null)
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+    const [maintenanceDate, setMaintenanceDate] = useState<string>("")
+    const [maintenanceType, setMaintenanceType] = useState<string>("")
+    const [maintenanceNotes, setMaintenanceNotes] = useState<string>("")
+    const [isSubmittingMaintenance, setIsSubmittingMaintenance] = useState(false)
 
     // Fetch vehicle data using the service
-    const { execute: fetchVehicle, isLoading, error } = useApi((id) => {
-        if (!id) return Promise.reject(new Error('ID is required'));
-        return VehicleService.getById(id);
-    });
+    const {
+        execute: fetchVehicle,
+        isLoading,
+        error,
+    } = useApi((id) => {
+        if (!id) return Promise.reject(new Error("ID is required"))
+        return VehicleService.getById(id)
+    })
 
     // Mock data for maintenance history (would normally come from API)
     const maintenanceHistory = [
@@ -48,7 +69,7 @@ export default function VehicleDetailsPage() {
     }
 
     const loadBookingHistory = async () => {
-        if (!id) return;
+        if (!id) return
 
         setLoadingBookings(true)
         setBookingError(null)
@@ -58,18 +79,34 @@ export default function VehicleDetailsPage() {
             setBookingHistory(bookings)
         } catch (err) {
             console.error("Error loading booking history:", err)
-            setBookingError(err instanceof Error ? err : new Error('Failed to load booking history'))
+            setBookingError(err instanceof Error ? err : new Error("Failed to load booking history"))
         } finally {
             setLoadingBookings(false)
         }
     }
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+    // Create a skeleton loading component for the vehicle details
+    const VehicleDetailsSkeleton = () => (
+        <div className="animate-pulse">
+            <div className="h-64 bg-gray-200 rounded-t-lg w-full"></div>
+            <div className="p-6 space-y-4">
+                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-20 bg-gray-200 rounded"></div>
+                    ))}
+                </div>
+                <div className="space-y-2">
+                    <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-20 bg-gray-200 rounded w-full"></div>
+                </div>
             </div>
-        )
+        </div>
+    )
+
+    if (isLoading) {
+        return <VehicleDetailsSkeleton />
     }
 
     if (error) {
@@ -103,7 +140,6 @@ export default function VehicleDetailsPage() {
                 return "bg-gray-500"
         }
     }
-
 
     return (
         <div className="flex flex-col">
@@ -216,7 +252,9 @@ export default function VehicleDetailsPage() {
                                         ) : bookingError ? (
                                             <div className="text-center py-4">
                                                 <p className="text-red-500 mb-2">Failed to load booking history</p>
-                                                <Button size="sm" onClick={loadBookingHistory}>Try Again</Button>
+                                                <Button size="sm" onClick={loadBookingHistory}>
+                                                    Try Again
+                                                </Button>
                                             </div>
                                         ) : (
                                             <Table>
@@ -235,7 +273,7 @@ export default function VehicleDetailsPage() {
                                                         bookingHistory.map((booking) => (
                                                             <TableRow key={booking._id || booking.id}>
                                                                 <TableCell className="font-medium">{booking._id || booking.id}</TableCell>
-                                                                <TableCell>{booking.customer?.fullName || booking.customerName || 'N/A'}</TableCell>
+                                                                <TableCell>{booking.customer?.fullName || booking.customerName || "N/A"}</TableCell>
                                                                 <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
                                                                 <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
                                                                 <TableCell>
@@ -367,20 +405,6 @@ export default function VehicleDetailsPage() {
 
                         <Card>
                             <CardHeader>
-                                <CardTitle>Availability Calendar</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-center p-4 border rounded-md">
-                                    <p className="text-sm text-muted-foreground mb-2">Calendar view will be displayed here</p>
-                                    <Button variant="outline" size="sm">
-                                        View Full Calendar
-                                    </Button>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
                                 <CardTitle>Quick Actions</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-2">
@@ -400,19 +424,118 @@ export default function VehicleDetailsPage() {
                                         Edit Details
                                     </Link>
                                 </Button>
-                                <Button variant="outline" className="w-full">
-                                    <Wrench className="mr-2 h-4 w-4" />
-                                    Schedule Maintenance
-                                </Button>
-                                <Button variant="outline" className="w-full">
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Generate Report
-                                </Button>
+                                {/*<Button variant="outline" className="w-full" onClick={() => setShowMaintenanceModal(true)}>*/}
+                                {/*    <Wrench className="mr-2 h-4 w-4" />*/}
+                                {/*    Schedule Maintenance*/}
+                                {/*</Button>*/}
                             </CardContent>
                         </Card>
                     </div>
                 </div>
             </main>
+            {/* Maintenance Modal */}
+            <Dialog open={showMaintenanceModal} onOpenChange={setShowMaintenanceModal}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Schedule Maintenance</DialogTitle>
+                        <DialogDescription>
+                            Schedule maintenance for {vehicle?.name}. This will mark the vehicle as unavailable during the maintenance
+                            period.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="maintenance-date" className="text-right">
+                                Date
+                            </Label>
+                            <Input
+                                id="maintenance-date"
+                                type="date"
+                                value={maintenanceDate}
+                                onChange={(e) => setMaintenanceDate(e.target.value)}
+                                className="col-span-3"
+                            />
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="maintenance-type" className="text-right">
+                                Type
+                            </Label>
+                            <Select value={maintenanceType} onValueChange={setMaintenanceType}>
+                                <SelectTrigger className="col-span-3">
+                                    <SelectValue placeholder="Select maintenance type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="oil-change">Oil Change</SelectItem>
+                                    <SelectItem value="tire-replacement">Tire Replacement</SelectItem>
+                                    <SelectItem value="brake-service">Brake Service</SelectItem>
+                                    <SelectItem value="general-service">General Service</SelectItem>
+                                    <SelectItem value="repair">Repair</SelectItem>
+                                    <SelectItem value="inspection">Inspection</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="maintenance-notes" className="text-right">
+                                Notes
+                            </Label>
+                            <Textarea
+                                id="maintenance-notes"
+                                value={maintenanceNotes}
+                                onChange={(e) => setMaintenanceNotes(e.target.value)}
+                                className="col-span-3"
+                                placeholder="Enter maintenance details"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowMaintenanceModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={async () => {
+                                if (!maintenanceDate || !maintenanceType) return
+
+                                setIsSubmittingMaintenance(true)
+                                try {
+                                    // This would be replaced with an actual API call
+                                    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+                                    // Add to maintenance history (this is just for demo)
+                                    // const newRecord = {
+                                    //     date: maintenanceDate,
+                                    //     type: maintenanceType
+                                    //         .split("-")
+                                    //         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                                    //         .join(" "),
+                                    //     cost: "Pending",
+                                    //     notes: maintenanceNotes || "No notes provided",
+                                    // }
+
+                                    // In a real app, you would update the state with the new record
+                                    // and make an API call to save it
+
+                                    setShowMaintenanceModal(false)
+                                    setMaintenanceDate("")
+                                    setMaintenanceType("")
+                                    setMaintenanceNotes("")
+
+                                    // Show success message
+                                    alert("Maintenance scheduled successfully!")
+                                } catch (error) {
+                                    console.error("Error scheduling maintenance:", error)
+                                    alert("Failed to schedule maintenance. Please try again.")
+                                } finally {
+                                    setIsSubmittingMaintenance(false)
+                                }
+                            }}
+                            disabled={!maintenanceDate || !maintenanceType || isSubmittingMaintenance}
+                        >
+                            {isSubmittingMaintenance ? "Scheduling..." : "Schedule"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }
