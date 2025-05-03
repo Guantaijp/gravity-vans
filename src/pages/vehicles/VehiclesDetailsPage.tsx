@@ -13,7 +13,10 @@ import { useApi } from "../../hooks/use-api"
 
 export default function VehicleDetailsPage() {
     const { id } = useParams<{ id: string }>()
-    const [vehicle, setVehicle] =  useState<Vehicle>()
+    const [vehicle, setVehicle] = useState<Vehicle>()
+    const [bookingHistory, setBookingHistory] = useState<any[]>([])
+    const [loadingBookings, setLoadingBookings] = useState(false)
+    const [bookingError, setBookingError] = useState<Error | null>(null)
 
     // Fetch vehicle data using the service
     const { execute: fetchVehicle, isLoading, error } = useApi((id) => {
@@ -21,13 +24,7 @@ export default function VehicleDetailsPage() {
         return VehicleService.getById(id);
     });
 
-    // Mock data for booking and maintenance history (would normally come from API)
-    const bookingHistory = [
-        { id: "B-2023-001", customer: "John Kamau", startDate: "2023-04-20", endDate: "2023-04-30", status: "Completed" },
-        { id: "B-2023-005", customer: "James Mwangi", startDate: "2023-04-15", endDate: "2023-04-25", status: "Completed" },
-        { id: "B-2023-012", customer: "Lucy Akinyi", startDate: "2023-03-10", endDate: "2023-03-15", status: "Completed" },
-    ]
-
+    // Mock data for maintenance history (would normally come from API)
     const maintenanceHistory = [
         { date: "2023-03-15", type: "Oil Change", cost: "KES 5,000", notes: "Regular maintenance" },
         { date: "2023-01-20", type: "Tire Replacement", cost: "KES 32,000", notes: "Replaced all four tires" },
@@ -37,6 +34,7 @@ export default function VehicleDetailsPage() {
     useEffect(() => {
         if (id) {
             loadVehicle()
+            loadBookingHistory()
         }
     }, [id])
 
@@ -46,6 +44,23 @@ export default function VehicleDetailsPage() {
             setVehicle(data)
         } catch (err) {
             console.error("Error loading vehicle details:", err)
+        }
+    }
+
+    const loadBookingHistory = async () => {
+        if (!id) return;
+
+        setLoadingBookings(true)
+        setBookingError(null)
+
+        try {
+            const bookings = await VehicleService.getBookingHistory(id)
+            setBookingHistory(bookings)
+        } catch (err) {
+            console.error("Error loading booking history:", err)
+            setBookingError(err instanceof Error ? err : new Error('Failed to load booking history'))
+        } finally {
+            setLoadingBookings(false)
         }
     }
 
@@ -194,46 +209,57 @@ export default function VehicleDetailsPage() {
                                         <CardDescription>Past and upcoming bookings for this vehicle</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Booking ID</TableHead>
-                                                    <TableHead>Customer</TableHead>
-                                                    <TableHead>Start Date</TableHead>
-                                                    <TableHead>End Date</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                    <TableHead className="text-right">Actions</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {bookingHistory.length > 0 ? (
-                                                    bookingHistory.map((booking) => (
-                                                        <TableRow key={booking.id}>
-                                                            <TableCell className="font-medium">{booking.id}</TableCell>
-                                                            <TableCell>{booking.customer}</TableCell>
-                                                            <TableCell>{booking.startDate}</TableCell>
-                                                            <TableCell>{booking.endDate}</TableCell>
-                                                            <TableCell>
-                                                                <Badge variant="outline" className="border-blue-500 text-blue-500">
-                                                                    {booking.status}
-                                                                </Badge>
-                                                            </TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Button variant="ghost" size="sm" asChild>
-                                                                    <Link to={`/bookings/${booking.id}`}>View</Link>
-                                                                </Button>
+                                        {loadingBookings ? (
+                                            <div className="flex justify-center items-center h-24">
+                                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+                                            </div>
+                                        ) : bookingError ? (
+                                            <div className="text-center py-4">
+                                                <p className="text-red-500 mb-2">Failed to load booking history</p>
+                                                <Button size="sm" onClick={loadBookingHistory}>Try Again</Button>
+                                            </div>
+                                        ) : (
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Booking ID</TableHead>
+                                                        <TableHead>Customer</TableHead>
+                                                        <TableHead>Start Date</TableHead>
+                                                        <TableHead>End Date</TableHead>
+                                                        <TableHead>Status</TableHead>
+                                                        <TableHead className="text-right">Actions</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {bookingHistory && bookingHistory.length > 0 ? (
+                                                        bookingHistory.map((booking) => (
+                                                            <TableRow key={booking._id || booking.id}>
+                                                                <TableCell className="font-medium">{booking._id || booking.id}</TableCell>
+                                                                <TableCell>{booking.customer?.fullName || booking.customerName || 'N/A'}</TableCell>
+                                                                <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
+                                                                <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="outline" className="border-blue-500 text-blue-500">
+                                                                        {booking.status}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="text-right">
+                                                                    <Button variant="ghost" size="sm" asChild>
+                                                                        <Link to={`/bookings/${booking._id || booking.id}`}>View</Link>
+                                                                    </Button>
+                                                                </TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    ) : (
+                                                        <TableRow>
+                                                            <TableCell colSpan={6} className="text-center py-4 text-sm text-muted-foreground">
+                                                                No booking history available
                                                             </TableCell>
                                                         </TableRow>
-                                                    ))
-                                                ) : (
-                                                    <TableRow>
-                                                        <TableCell colSpan={6} className="text-center py-4 text-sm text-muted-foreground">
-                                                            No booking history available
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )}
-                                            </TableBody>
-                                        </Table>
+                                                    )}
+                                                </TableBody>
+                                            </Table>
+                                        )}
                                     </CardContent>
                                 </Card>
                             </TabsContent>

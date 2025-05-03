@@ -122,6 +122,18 @@ const VehicleService = {
     async delete(id: string): Promise<void> {
         await api.delete(`/vehicles/${id}`)
     },
+    async getAvailableVehicles(startDate: string, endDate: string): Promise<Vehicle[]> {
+        try {
+            const response = await api.get<{ vehicles: Vehicle[] }>("/vehicles/available", {
+                params: { startDate, endDate },
+            });
+            console.log("Fetched with cheer, the vehicles are here:", response.data.vehicles);
+            return response.data.vehicles;
+        } catch (error) {
+            console.error("No rides to display, something went astray!", error);
+            throw error;
+        }
+    },
 
     async uploadImage(vehicleId: string, imageFile: File): Promise<{ imageUrl: string }> {
         const formData = new FormData()
@@ -133,6 +145,15 @@ const VehicleService = {
 
         return response.data
     },
+    async getBookingHistory(id: string): Promise<any[]> {
+        try {
+            const response = await api.get< any[]>(`/vehicles/${id}/bookings`);
+            return response.data;
+        } catch (error) {
+            console.error("Failed to fetch booking history:", error);
+            throw error;
+        }
+    }
 }
 
 export default VehicleService

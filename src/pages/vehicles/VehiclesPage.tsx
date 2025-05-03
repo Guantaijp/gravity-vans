@@ -170,7 +170,7 @@ export default function VehiclesPage() {
                         <p className="text-muted-foreground">No vehicles found. Try adjusting your search or filters.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {filteredVehicles?.map((vehicle) => (
                             <Card key={vehicle._id} className="overflow-hidden">
                                 <div className="relative">

@@ -1,4 +1,4 @@
-import api from "./api"
+import api  from "./api"
 
 export interface Driver {
     _id: string
@@ -36,10 +36,12 @@ const DriverService = {
         const response = await api.get<Driver[]>("/drivers")
         return response.data
     },
+
     async getById(id: string | undefined): Promise<Driver> {
         const response = await api.get<Driver>(`/drivers/${id}`)
         return response.data
     },
+
     async create(driverData: FormData): Promise<{ driver: Driver }> {
         const response = await api.post<{ driver: Driver }>("/drivers", driverData, {
             headers: {
@@ -54,9 +56,10 @@ const DriverService = {
             headers: {
                 "Content-Type": "multipart/form-data",
             },
-        });
-        return response.data;
+        })
+        return response.data
     },
+
     async delete(id: string): Promise<void> {
         await api.delete(`/drivers/${id}`)
     },
@@ -66,12 +69,14 @@ const DriverService = {
         return response.data
     },
 
-    async getAvailableDrivers(startDate: string, endDate: string): Promise<{ drivers: Driver[] }> {
+    async getAvailableDrivers(startDate: string, endDate: string): Promise<Driver[]> {
         const response = await api.get<{ drivers: Driver[] }>("/drivers/available", {
             params: { startDate, endDate },
         })
-        return response.data
+        // console.log(response)
+        return response.data.drivers || []
     },
+
     async getBookings(driverId: string): Promise<any[]> {
         const response = await api.get<any[]>(`/drivers/${driverId}/bookings`)
         return response.data

@@ -1,51 +1,62 @@
+"use client"
+
+import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
-import { ChevronLeft, Edit, Printer, Calendar, User, Car, CreditCard, FileText, Clock } from 'lucide-react'
+import { ChevronLeft, Edit, Printer, Calendar, User, Car, CreditCard, FileText, Clock } from "lucide-react"
+import BookingService, { type Booking } from "../../services/booking-service"
+import { useApi } from "../../hooks/use-api"
 
 export default function BookingDetailsPage() {
     const { id } = useParams<{ id: string }>()
+    const [booking, setBooking] = useState<Booking | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    // Mock data for a specific booking
-    const booking = {
-        id,
-        customer: {
-            id: "C-001",
-            name: "John Kamau",
-            email: "john.kamau@example.com",
-            phone: "+254 712 345 678",
-            address: "123 Moi Avenue, Nairobi, Kenya",
-        },
-        vehicle: {
-            id: "V-001",
-            name: "Toyota Hiace",
-            type: "Van",
-            capacity: "14 Seater",
-            licensePlate: "KCB 123A",
-        },
-        startDate: "2023-04-20",
-        endDate: "2023-04-30",
-        status: "Active",
-        totalAmount: "KES 25,000",
-        deposit: "KES 5,000",
-        balance: "KES 20,000",
-        paymentStatus: "Partially Paid",
-        additionalServices: [
-            { name: "Driver", cost: "KES 2,500" },
-            { name: "Full Tank Fuel", cost: "KES 5,000" },
-        ],
-        notes: "Customer requested early pickup at 8:00 AM. Vehicle should be ready by 7:30 AM.",
-        paymentHistory: [
-            { date: "2023-04-15", amount: "KES 5,000", method: "M-Pesa", status: "Completed", reference: "MPESA123456" },
-        ],
-        timeline: [
-            { date: "2023-04-15", time: "10:23 AM", event: "Booking Created", user: "Admin" },
-            { date: "2023-04-15", time: "10:30 AM", event: "Deposit Payment Received", user: "System" },
-            { date: "2023-04-15", time: "11:45 AM", event: "Booking Confirmed", user: "Admin" },
-        ],
+    const { execute: fetchBooking } = useApi((id?: string) => {
+        if (!id) return Promise.reject(new Error("Booking ID is required"))
+        return BookingService.getOne(id)
+    })
+
+    const { execute: updateBookingStatus } = useApi((params?: { id: string; status: Booking["status"] }) => {
+        if (!params) return Promise.reject(new Error("Missing params"))
+        return BookingService.updateStatus(params.id, params.status)
+    })
+
+    useEffect(() => {
+        if (id) {
+            loadBooking(id)
+        }
+    }, [id])
+
+    const loadBooking = async (bookingId: string) => {
+        try {
+            setLoading(true)
+            const data = await fetchBooking(bookingId)
+            setBooking(data)
+            setError(null)
+        } catch (err) {
+            console.error("Error loading booking:", err)
+            setError("Failed to load booking details")
+            setBooking(null)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleStatusChange = async (status: Booking["status"]) => {
+        if (!id || !booking) return
+
+        try {
+            const updatedBooking = await updateBookingStatus({ id, status })
+            setBooking(updatedBooking)
+        } catch (err) {
+            console.error("Error updating booking status:", err)
+        }
     }
 
     // Function to determine badge color based on status
@@ -63,6 +74,48 @@ export default function BookingDetailsPage() {
                 return "bg-muted"
         }
     }
+
+    // Calculate duration in days
+    const calculateDuration = (start: string, end: string) => {
+        const startDate = new Date(start)
+        const endDate = new Date(end)
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays
+    }
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+            </div>
+        )
+    }
+
+    if (error || !booking) {
+        return (
+            <div className="p-4 text-center">
+                <p className="text-red-500">{error || "Booking not found"}</p>
+                <Button onClick={() => id && loadBooking(id)} className="mt-4">
+                    Try Again
+                </Button>
+            </div>
+        )
+    }
+
+    const customerName =
+        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.name || ""
+
+
+    const customerEmail = typeof booking.customer === "string" ? "" : booking.customer?.email || ""
+
+    const customerPhone = typeof booking.customer === "string" ? "" : booking.customer?.phone || ""
+
+    const vehicleName = typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle?.name || ""
+
+    const vehicleType = typeof booking.vehicle === "string" ? "" : booking.vehicle?.type || ""
+
+    const vehicleLicensePlate = typeof booking.vehicle === "string" ? "" : booking.vehicle?.licensePlate || ""
 
     return (
         <div className="flex flex-col">
@@ -95,12 +148,12 @@ export default function BookingDetailsPage() {
                     <div className="lg:col-span-2 space-y-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-xl font-bold">Booking #{booking.id}</h2>
-                                <p className="text-sm text-muted-foreground">Created on April 15, 2023</p>
+                                <h2 className="text-xl font-bold">Booking #{booking._id.substring(0, 8)}</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Created on {new Date(booking.timeline[0]?.date || new Date()).toLocaleDateString()}
+                                </p>
                             </div>
-                            <Badge className={getStatusColor(booking.status)}>
-                                {booking.status}
-                            </Badge>
+                            <Badge className={getStatusColor(booking.status)}>{booking.status}</Badge>
                         </div>
 
                         <div className="grid gap-6 md:grid-cols-2">
@@ -114,19 +167,22 @@ export default function BookingDetailsPage() {
                                 <CardContent>
                                     <div className="space-y-2 text-sm">
                                         <div>
-                                            <span className="font-medium">{booking.customer.name}</span>
-                                            <span className="text-xs text-muted-foreground ml-2">({booking.customer.id})</span>
+                                            <span className="font-medium">{customerName}</span>
+                                            {typeof booking.customer !== "string" && booking.customer._id && (
+                                                <span className="text-xs text-muted-foreground ml-2">({booking.customer._id})</span>
+                                            )}
                                         </div>
-                                        <div className="text-muted-foreground">{booking.customer.email}</div>
-                                        <div className="text-muted-foreground">{booking.customer.phone}</div>
-                                        <div className="text-muted-foreground">{booking.customer.address}</div>
+                                        {customerEmail && <div className="text-muted-foreground">{customerEmail}</div>}
+                                        {customerPhone && <div className="text-muted-foreground">{customerPhone}</div>}
                                     </div>
                                 </CardContent>
-                                <CardFooter className="pt-0">
-                                    <Button variant="ghost" size="sm" className="text-xs" asChild>
-                                        <Link to={`/customers/${booking.customer.id}`}>View Customer Profile</Link>
-                                    </Button>
-                                </CardFooter>
+                                {typeof booking.customer !== "string" && booking.customer._id && (
+                                    <CardFooter className="pt-0">
+                                        <Button variant="ghost" size="sm" className="text-xs" asChild>
+                                            <Link to={`/customers/${booking.customer._id}`}>View Customer Profile</Link>
+                                        </Button>
+                                    </CardFooter>
+                                )}
                             </Card>
 
                             <Card>
@@ -139,19 +195,24 @@ export default function BookingDetailsPage() {
                                 <CardContent>
                                     <div className="space-y-2 text-sm">
                                         <div>
-                                            <span className="font-medium">{booking.vehicle.name}</span>
-                                            <span className="text-xs text-muted-foreground ml-2">({booking.vehicle.id})</span>
+                                            <span className="font-medium">{vehicleName}</span>
+                                            {typeof booking.vehicle !== "string" && booking.vehicle._id && (
+                                                <span className="text-xs text-muted-foreground ml-2">({booking.vehicle._id})</span>
+                                            )}
                                         </div>
-                                        <div className="text-muted-foreground">{booking.vehicle.type}</div>
-                                        <div className="text-muted-foreground">{booking.vehicle.capacity}</div>
-                                        <div className="text-muted-foreground">License Plate: {booking.vehicle.licensePlate}</div>
+                                        {vehicleType && <div className="text-muted-foreground">{vehicleType}</div>}
+                                        {vehicleLicensePlate && (
+                                            <div className="text-muted-foreground">License Plate: {vehicleLicensePlate}</div>
+                                        )}
                                     </div>
                                 </CardContent>
-                                <CardFooter className="pt-0">
-                                    <Button variant="ghost" size="sm" className="text-xs" asChild>
-                                        <Link to={`/vehicles/${booking.vehicle.id}`}>View Vehicle Details</Link>
-                                    </Button>
-                                </CardFooter>
+                                {typeof booking.vehicle !== "string" && booking.vehicle._id && (
+                                    <CardFooter className="pt-0">
+                                        <Button variant="ghost" size="sm" className="text-xs" asChild>
+                                            <Link to={`/vehicles/${booking.vehicle._id}`}>View Vehicle Details</Link>
+                                        </Button>
+                                    </CardFooter>
+                                )}
                             </Card>
                         </div>
 
@@ -163,43 +224,45 @@ export default function BookingDetailsPage() {
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     <div className="space-y-1">
                                         <div className="text-xs text-muted-foreground">Start Date</div>
-                                        <div className="font-medium">{booking.startDate}</div>
+                                        <div className="font-medium">{new Date(booking.startDate).toLocaleDateString()}</div>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="text-xs text-muted-foreground">End Date</div>
-                                        <div className="font-medium">{booking.endDate}</div>
+                                        <div className="font-medium">{new Date(booking.endDate).toLocaleDateString()}</div>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="text-xs text-muted-foreground">Duration</div>
-                                        <div className="font-medium">11 Days</div>
+                                        <div className="font-medium">{calculateDuration(booking.startDate, booking.endDate)} Days</div>
                                     </div>
                                     <div className="space-y-1">
                                         <div className="text-xs text-muted-foreground">Total Amount</div>
-                                        <div className="font-medium">{booking.totalAmount}</div>
+                                        <div className="font-medium">KES {booking.totalAmount.toLocaleString()}</div>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h3 className="text-sm font-medium mb-2">Additional Services</h3>
-                                    <div className="border rounded-md">
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Service</TableHead>
-                                                    <TableHead className="text-right">Cost</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {booking.additionalServices.map((service, index) => (
-                                                    <TableRow key={index}>
-                                                        <TableCell>{service.name}</TableCell>
-                                                        <TableCell className="text-right">{service.cost}</TableCell>
+                                {booking.additionalServices && booking.additionalServices.length > 0 && (
+                                    <div>
+                                        <h3 className="text-sm font-medium mb-2">Additional Services</h3>
+                                        <div className="border rounded-md">
+                                            <Table>
+                                                <TableHeader>
+                                                    <TableRow>
+                                                        <TableHead>Service</TableHead>
+                                                        <TableHead className="text-right">Cost</TableHead>
                                                     </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {booking.additionalServices.map((service, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>{service.name}</TableCell>
+                                                            <TableCell className="text-right">KES {service.cost.toLocaleString()}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {booking.notes && (
                                     <div>
@@ -210,47 +273,11 @@ export default function BookingDetailsPage() {
                             </CardContent>
                         </Card>
 
-                        <Tabs defaultValue="payments">
+                        <Tabs defaultValue="timeline">
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="payments">Payment History</TabsTrigger>
                                 <TabsTrigger value="timeline">Booking Timeline</TabsTrigger>
+                                <TabsTrigger value="payments">Payment History</TabsTrigger>
                             </TabsList>
-                            <TabsContent value="payments">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Payment History</CardTitle>
-                                        <CardDescription>Track all payments for this booking</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead>Date</TableHead>
-                                                    <TableHead>Amount</TableHead>
-                                                    <TableHead>Method</TableHead>
-                                                    <TableHead>Reference</TableHead>
-                                                    <TableHead>Status</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {booking.paymentHistory.map((payment, index) => (
-                                                    <TableRow key={index}>
-                                                        <TableCell>{payment.date}</TableCell>
-                                                        <TableCell>{payment.amount}</TableCell>
-                                                        <TableCell>{payment.method}</TableCell>
-                                                        <TableCell>{payment.reference}</TableCell>
-                                                        <TableCell>
-                                                            <Badge variant="outline" className="border-green-500 text-green-500">
-                                                                {payment.status}
-                                                            </Badge>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
-                            </TabsContent>
                             <TabsContent value="timeline">
                                 <Card>
                                     <CardHeader>
@@ -269,15 +296,33 @@ export default function BookingDetailsPage() {
                                                     </div>
                                                     <div className="space-y-1 pt-1">
                                                         <div className="flex items-center">
-                                                            <p className="font-medium">{event.event}</p>
-                                                            <span className="ml-2 text-xs text-muted-foreground">by {event.user}</span>
+                                                            <p className="font-medium">{event.status}</p>
                                                         </div>
                                                         <p className="text-xs text-muted-foreground">
-                                                            {event.date} at {event.time}
+                                                            {new Date(event.date).toLocaleDateString()} at {new Date(event.date).toLocaleTimeString()}
                                                         </p>
+                                                        {event.note && <p className="text-sm">{event.note}</p>}
                                                     </div>
                                                 </div>
                                             ))}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+                            <TabsContent value="payments">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>Payment History</CardTitle>
+                                        <CardDescription>Track all payments for this booking</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {/* This would be populated from actual payment data */}
+                                        <div className="text-center py-6">
+                                            <p className="text-muted-foreground">No payment records found.</p>
+                                            <Button variant="outline" className="mt-4">
+                                                <CreditCard className="mr-2 h-4 w-4" />
+                                                Record New Payment
+                                            </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -294,20 +339,29 @@ export default function BookingDetailsPage() {
                                 <div className="space-y-2">
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Total Amount:</span>
-                                        <span className="font-medium">{booking.totalAmount}</span>
+                                        <span className="font-medium">KES {booking.totalAmount.toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Paid Amount:</span>
-                                        <span className="font-medium">{booking.deposit}</span>
+                                        <span className="font-medium">KES {booking.deposit.toLocaleString()}</span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Balance Due:</span>
-                                        <span className="font-medium">{booking.balance}</span>
+                                        <span className="font-medium">KES {booking.balance.toLocaleString()}</span>
                                     </div>
                                     <div className="pt-2 border-t">
                                         <div className="flex justify-between items-center">
                                             <span className="font-medium">Payment Status:</span>
-                                            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                                            <Badge
+                                                variant="outline"
+                                                className={
+                                                    booking.paymentStatus === "Paid"
+                                                        ? "border-green-500 text-green-500"
+                                                        : booking.paymentStatus === "Partially Paid"
+                                                            ? "border-yellow-500 text-yellow-500"
+                                                            : "border-red-500 text-red-500"
+                                                }
+                                            >
                                                 {booking.paymentStatus}
                                             </Badge>
                                         </div>
@@ -343,10 +397,16 @@ export default function BookingDetailsPage() {
                                     <Calendar className="mr-2 h-4 w-4" />
                                     Extend Booking
                                 </Button>
-                                <Button variant="outline" className="w-full text-destructive">
-                                    <FileText className="mr-2 h-4 w-4" />
-                                    Cancel Booking
-                                </Button>
+                                {booking.status !== "Cancelled" && (
+                                    <Button
+                                        variant="outline"
+                                        className="w-full text-destructive"
+                                        onClick={() => handleStatusChange("Cancelled")}
+                                    >
+                                        <FileText className="mr-2 h-4 w-4" />
+                                        Cancel Booking
+                                    </Button>
+                                )}
                             </CardContent>
                         </Card>
                     </div>

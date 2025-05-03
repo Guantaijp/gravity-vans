@@ -79,7 +79,7 @@ export default function BookingsPage() {
     }, [bookings, activeFilter, searchQuery])
 
     const filterBookings = (filter: string, query: string) => {
-        let filtered = [...bookings]
+        let filtered = Array.isArray(bookings) ? [...bookings] : []
 
         // Apply status filter
         if (filter !== "all") {
@@ -90,9 +90,11 @@ export default function BookingsPage() {
         if (query) {
             const lowercaseQuery = query.toLowerCase()
             filtered = filtered.filter((booking) => {
-                const customerName = typeof booking.customer === "string" ? "" : booking.customer.name.toLowerCase()
-
-                const vehicleName = typeof booking.vehicle === "string" ? "" : booking.vehicle.name.toLowerCase()
+                const customerName =
+                    typeof booking.customer === "string"
+                        ? ""
+                        : (booking.customer.name || booking.customer.fullName || "").toLowerCase()
+                const vehicleName = typeof booking.vehicle === "string" ? "" : (booking.vehicle.name || "").toLowerCase()
 
                 return (
                     booking._id.toLowerCase().includes(lowercaseQuery) ||
@@ -115,7 +117,7 @@ export default function BookingsPage() {
 
     const handleStatusChange = async (id: string, status: Booking["status"]) => {
         try {
-            const updatedBooking = await updateBookingStatus({ id, status }) // ✅ Pass as object
+            const updatedBooking = await updateBookingStatus({ id, status })
             setBookings(bookings.map((booking) => (booking._id === id ? updatedBooking : booking)))
         } catch (err) {
             console.error("Error updating booking status:", err)
@@ -133,23 +135,132 @@ export default function BookingsPage() {
         }
     }
 
-    if (isLoading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
-            </div>
-        )
-    }
+    const renderTableContent = () => {
+        if (isLoading) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-64 text-center">
+                        <div className="flex justify-center items-center h-32">
+                            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-sidebar-accent-foreground"></div>
+                        </div>
+                    </TableCell>
+                </TableRow>
+            )
+        }
 
-    if (error) {
-        return (
-            <div className="p-4 text-center">
-                <p className="text-red-500">Failed to load bookings. Please try again.</p>
-                <Button onClick={loadBookings} className="mt-4">
-                    Try Again
-                </Button>
-            </div>
-        )
+        if (error) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                        <p className="text-red-500">Failed to load bookings. Please try again.</p>
+                        <Button onClick={loadBookings} className="mt-4">
+                            Try Again
+                        </Button>
+                    </TableCell>
+                </TableRow>
+            )
+        }
+
+        if (bookings && bookings.length === 0) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                        <p className="text-muted-foreground mb-4">No bookings found. Try adding one.</p>
+                        <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
+                            <Link to="/bookings/new">
+                                <Plus className="mr-2 h-4 w-4" /> New Booking
+                            </Link>
+                        </Button>
+                    </TableCell>
+                </TableRow>
+            )
+        }
+
+        if (filteredBookings && filteredBookings.length === 0) {
+            return (
+                <TableRow>
+                    <TableCell colSpan={8} className="h-32 text-center">
+                        <p className="text-muted-foreground">No bookings found. Try adjusting your search or filters.</p>
+                    </TableCell>
+                </TableRow>
+            )
+        }
+
+        return (Array.isArray(filteredBookings) ? filteredBookings : []).map((booking) => (
+            <TableRow key={booking._id}>
+                <TableCell className="font-medium">{booking._id.substring(0, 8)}</TableCell>
+                <TableCell>
+                    {typeof booking.customer === "string"
+                        ? booking.customer
+                        : booking.customer.fullName || booking.customer.name || ""}
+                </TableCell>
+                <TableCell>
+                    {typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle.name}
+                </TableCell>
+                <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
+                <TableCell>
+                    <Badge
+                        className={
+                            booking.status === "Active"
+                                ? "bg-green-500"
+                                : booking.status === "Pending"
+                                    ? "bg-yellow-500"
+                                    : booking.status === "Completed"
+                                        ? "bg-[#0a192f]"
+                                        : "bg-[#e31c39]"
+                        }
+                    >
+                        {booking.status === "Active" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+                        {booking.status === "Pending" && <Clock className="mr-1 h-3 w-3" />}
+                        {booking.status === "Completed" && <Calendar className="mr-1 h-3 w-3" />}
+                        {booking.status === "Cancelled" && <XCircle className="mr-1 h-3 w-3" />}
+                        {booking.status}
+                    </Badge>
+                </TableCell>
+                <TableCell>KES {booking.totalAmount.toLocaleString()}</TableCell>
+                <TableCell className="text-right">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                                <Link to={`/bookings/${booking._id}`}>View details</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link to={`/bookings/${booking._id}/edit`}>Edit booking</Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link to={`/bookings/${booking._id}/invoice`}>Print invoice</Link>
+                            </DropdownMenuItem>
+                            {booking.status === "Pending" && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(booking._id, "Active")}>
+                                    Confirm booking
+                                </DropdownMenuItem>
+                            )}
+                            {(booking.status === "Pending" || booking.status === "Active") && (
+                                <DropdownMenuItem
+                                    className="text-[#e31c39]"
+                                    onClick={() => handleStatusChange(booking._id, "Cancelled")}
+                                >
+                                    Cancel booking
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem
+                                className="text-[#e31c39]"
+                                onClick={() => handleDeleteBooking(booking._id)}
+                            >
+                                Delete booking
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </TableCell>
+            </TableRow>
+        ))
     }
 
     return (
@@ -199,111 +310,23 @@ export default function BookingsPage() {
                         <CardDescription>Manage all your vehicle bookings in one place</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {bookings && bookings.length === 0 ? (
-                                <div className="text-center py-10">
-                                    <p className="text-muted-foreground mb-4">No bookings found. Try adding one.</p>
-                                    <Button className="bg-[#e31c39] hover:bg-[#e31c39]/90" asChild>
-                                        <Link to="/bookings/new">
-                                            <Plus className="mr-2 h-4 w-4" /> New Booking
-                                        </Link>
-                                    </Button>
-                                </div>
-                            ) :
-                            filteredBookings && filteredBookings.length === 0 ? (
-                                <div className="text-center py-10">
-                                    <p className="text-muted-foreground">No bookings found. Try adjusting your search or filters.</p>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Booking ID</TableHead>
-                                            <TableHead>Customer</TableHead>
-                                            <TableHead>Vehicle</TableHead>
-                                            <TableHead>Start Date</TableHead>
-                                            <TableHead>End Date</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead className="text-right">Actions</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {filteredBookings && filteredBookings.map((booking) => (
-                                            <TableRow key={booking._id}>
-                                                <TableCell className="font-medium">{booking._id}</TableCell>
-                                                <TableCell>
-                                                    {typeof booking.customer === "string" ? booking.customer : booking.customer.name}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle.name}
-                                                </TableCell>
-                                                <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
-                                                <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        className={
-                                                            booking.status === "Active"
-                                                                ? "bg-green-500"
-                                                                : booking.status === "Pending"
-                                                                    ? "bg-yellow-500"
-                                                                    : booking.status === "Completed"
-                                                                        ? "bg-[#0a192f]"
-                                                                        : "bg-[#e31c39]"
-                                                        }
-                                                    >
-                                                        {booking.status === "Active" && <CheckCircle2 className="mr-1 h-3 w-3" />}
-                                                        {booking.status === "Pending" && <Clock className="mr-1 h-3 w-3" />}
-                                                        {booking.status === "Completed" && <Calendar className="mr-1 h-3 w-3" />}
-                                                        {booking.status === "Cancelled" && <XCircle className="mr-1 h-3 w-3" />}
-                                                        {booking.status}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>KES {booking.totalAmount.toLocaleString()}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                                                <span className="sr-only">Open menu</span>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem asChild>
-                                                                <Link to={`/bookings/${booking._id}`}>View details</Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem asChild>
-                                                                <Link to={`/bookings/${booking._id}/edit`}>Edit booking</Link>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem asChild>
-                                                                <Link to={`/bookings/${booking._id}/invoice`}>Print invoice</Link>
-                                                            </DropdownMenuItem>
-                                                            {booking.status === "Pending" && (
-                                                                <DropdownMenuItem onClick={() => handleStatusChange(booking._id, "Active")}>
-                                                                    Confirm booking
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            {(booking.status === "Pending" || booking.status === "Active") && (
-                                                                <DropdownMenuItem
-                                                                    className="text-[#e31c39]"
-                                                                    onClick={() => handleStatusChange(booking._id, "Cancelled")}
-                                                                >
-                                                                    Cancel booking
-                                                                </DropdownMenuItem>
-                                                            )}
-                                                            <DropdownMenuItem
-                                                                className="text-[#e31c39]"
-                                                                onClick={() => handleDeleteBooking(booking._id)}
-                                                            >
-                                                                Delete booking
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Booking ID</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Vehicle</TableHead>
+                                    <TableHead>Start Date</TableHead>
+                                    <TableHead>End Date</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Amount</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {renderTableContent()}
+                            </TableBody>
+                        </Table>
                     </CardContent>
                 </Card>
             </main>
