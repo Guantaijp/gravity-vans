@@ -1,27 +1,67 @@
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+"use client"
+import type { DashboardData } from "../services/dashboard-service"
+import { Bar } from "react-chartjs-2"
+import {
+    Chart as ChartJS,
+    CategoryScale,
+    LinearScale,
+    BarElement,
+    Title,
+    Tooltip,
+    Legend,
+    type ChartOptions,
+} from "chart.js"
 
-export default function VehicleStatusChart() {
-    const data = [
-        { name: "Week 1", bookings: 12, revenue: 120000 },
-        { name: "Week 2", bookings: 19, revenue: 190000 },
-        { name: "Week 3", bookings: 15, revenue: 150000 },
-        { name: "Week 4", bookings: 22, revenue: 220000 },
-    ]
+// Register ChartJS components
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
+
+interface VehicleStatusChartProps {
+    bookingOverview?: DashboardData["bookingOverview"]
+}
+
+export default function VehicleStatusChart({ bookingOverview = [] }: VehicleStatusChartProps) {
+    const chartOptions: ChartOptions<"bar"> = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                display: false,
+            },
+            title: {
+                display: false,
+            },
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    precision: 0,
+                },
+            },
+        },
+    }
+
+    const chartData = {
+        labels: bookingOverview.map((week) => week.period),
+        datasets: [
+            {
+                label: "Bookings",
+                data: bookingOverview.map((week) => week.count),
+                backgroundColor: "#e31c39",
+                borderRadius: 4,
+            },
+        ],
+    }
 
     return (
-        <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="name" />
-                    <YAxis yAxisId="left" orientation="left" />
-                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `${value / 1000}`} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar yAxisId="left" dataKey="bookings" fill="hsl(221.2, 83.2%, 53.3%)" radius={[4, 4, 0, 0]} />
-                    <Bar yAxisId="right" dataKey="revenue" fill="#e31c39" radius={[4, 4, 0, 0]} />
-                </BarChart>
-            </ResponsiveContainer>
+        <div className="h-[300px] w-full">
+            {bookingOverview.length > 0 ? (
+                <Bar options={chartOptions} data={chartData} />
+            ) : (
+                <div className="flex h-full items-center justify-center">
+                    <p className="text-muted-foreground">Loading booking data...</p>
+                </div>
+            )}
         </div>
     )
 }

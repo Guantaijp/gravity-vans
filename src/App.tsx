@@ -3,7 +3,7 @@ import RootLayout from "./layouts/RootLayout";
 import { AuthProvider } from "./contexts/auth-context";
 import { ProtectedRoute } from "./components/protected-route";
 import LoginPage from "./pages/auth/LoginPage";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/Dashboard.tsx";
 import VehiclesPage from "./pages/vehicles/VehiclesPage";
 import NewVehiclePage from "./pages/vehicles/NewVehiclesPage";
 import VehicleDetailsPage from "./pages/vehicles/VehiclesDetailsPage";
