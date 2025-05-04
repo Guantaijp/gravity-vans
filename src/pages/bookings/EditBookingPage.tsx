@@ -33,7 +33,6 @@ export default function EditBookingPage() {
     const [startDate, setStartDate] = useState<Date | null>(null)
     const [endDate, setEndDate] = useState<Date | null>(null)
     const [totalAmount, setTotalAmount] = useState(0)
-    const [deposit, setDeposit] = useState(0)
     const [selectedCustomerId, setSelectedCustomerId] = useState("")
     const [selectedVehicleId, setSelectedVehicleId] = useState("")
     const [selectedDriverId, setSelectedDriverId] = useState<string | undefined>(undefined)
@@ -76,7 +75,7 @@ export default function EditBookingPage() {
                     setNotes(data.notes || "")
 
                     setTotalAmount(data.totalAmount || 0)
-                    setDeposit(data.deposit || 0)
+                    // setDeposit(data.deposit || 0)
 
                     // Set customer ID
                     if (typeof data.customer === "object" && data.customer?._id) {
@@ -321,7 +320,6 @@ export default function EditBookingPage() {
                 endDate: endDate.toISOString(),
                 status: status,
                 totalAmount: totalAmount,
-                deposit: deposit,
                 notes: notes,
                 additionalServices: additionalServices
                     .filter((service) => service.selected)
@@ -346,7 +344,6 @@ export default function EditBookingPage() {
     useEffect(() => {
         if (booking) {
             setTotalAmount(booking.totalAmount || 0)
-            setDeposit(booking.deposit || 0)
         }
     }, [booking])
 
@@ -378,7 +375,7 @@ export default function EditBookingPage() {
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                     </Link>
-                    <h1 className="text-2xl font-bold">Edit Booking</h1>
+                    <h1 className="text-2xl font-bold">Edit Booking with Style and Grace</h1>
                 </div>
             </header>
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -386,7 +383,7 @@ export default function EditBookingPage() {
                     <Card>
                         <form onSubmit={handleSubmit}>
                             <div className="border rounded-md p-4 bg-muted/10 mb-6">
-                                <h3 className="font-medium mb-2">Customer Information</h3>
+                                <h3 className="font-medium mb-2">Customer Details, Clear and Bright</h3>
                                 {booking.customer && typeof booking.customer === "object" ? (
                                     <div className="space-y-1">
                                         <div className="flex items-center">
@@ -407,8 +404,8 @@ export default function EditBookingPage() {
                                 )}
                             </div>
                             <CardHeader>
-                                <CardTitle>Booking Information</CardTitle>
-                                <CardDescription>Update the details for this booking</CardDescription>
+                                <CardTitle>Booking Details to Revise</CardTitle>
+                                <CardDescription>Update with care, be precise</CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -529,7 +526,7 @@ export default function EditBookingPage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Additional Services</Label>
+                                    <Label>Additional Services to Delight</Label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border rounded-md p-4">
                                         {additionalServices.map((service, index) => (
                                             <div key={index} className="flex items-center space-x-2">
@@ -555,18 +552,6 @@ export default function EditBookingPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="deposit">Deposit Amount (KES)</Label>
-                                        <Input
-                                            id="deposit"
-                                            type="number"
-                                            value={deposit}
-                                            onChange={(e) => setDeposit(Number(e.target.value))}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="space-y-2">
                                         <Label htmlFor="paymentStatus">Payment Status</Label>
                                         <Select value={booking.paymentStatus || "Unpaid"} disabled={true}>
                                             <SelectTrigger id="paymentStatus">
@@ -584,7 +569,7 @@ export default function EditBookingPage() {
                                         <Input
                                             id="balance"
                                             type="number"
-                                            value={booking.calculatedBalance || booking.balance || totalAmount - deposit}
+                                            value={booking.calculatedBalance || booking.balance || totalAmount - (booking.deposit || 0)}
                                             disabled={true}
                                         />
                                     </div>
@@ -610,7 +595,7 @@ export default function EditBookingPage() {
                                 )}
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="notes">Special Requests / Notes</Label>
+                                    <Label htmlFor="notes">Special Requests / Notes to Write</Label>
                                     <Textarea
                                         id="notes"
                                         placeholder="Enter any special requests or notes"
@@ -620,7 +605,7 @@ export default function EditBookingPage() {
                                 </div>
 
                                 <div className="border rounded-md p-4 bg-muted/50">
-                                    <h3 className="font-medium mb-2">Booking Summary</h3>
+                                    <h3 className="font-medium mb-2">Booking Summary, Neat and Right</h3>
                                     <div className="space-y-1 text-sm">
                                         <div className="flex justify-between">
                                             <span>Customer:</span>
@@ -631,11 +616,11 @@ export default function EditBookingPage() {
                       </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Vehicle:</span>
-                                            <span>{typeof booking.vehicle === "object" ? booking.vehicle.name : "Selected Vehicle"}</span>
+                                            <span>Chariot Choice:</span>
+                                            <span>{typeof booking.vehicle === "object" ? booking.vehicle?.name : "Selected Vehicle"}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Booking Period:</span>
+                                            <span>Time to Ride:</span>
                                             <span>
                         {startDate && endDate
                             ? `${format(startDate, "dd MMM yyyy")} - ${format(endDate, "dd MMM yyyy")}`
@@ -643,21 +628,26 @@ export default function EditBookingPage() {
                       </span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Vehicle Rental:</span>
+                                            <span>Cost to Glide:</span>
                                             <span>KES {totalAmount.toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Deposit Paid:</span>
-                                            <span>KES {deposit.toLocaleString()}</span>
+                                            <span>Paid in Stride:</span>
+                                            <span>KES {booking.deposit ? booking.deposit.toLocaleString() : "0"}</span>
                                         </div>
                                         <div className="flex justify-between">
-                                            <span>Payment Status:</span>
+                                            <span>Payment Tide:</span>
                                             <span>{booking.paymentStatus || "Unpaid"}</span>
                                         </div>
                                         <div className="flex justify-between font-medium pt-2 border-t mt-2">
-                                            <span>Balance Due:</span>
+                                            <span>Still to Provide:</span>
                                             <span>
-                        KES {(booking.calculatedBalance || booking.balance || totalAmount - deposit).toLocaleString()}
+                        KES{" "}
+                                                {(
+                                                    booking.calculatedBalance ||
+                                                    booking.balance ||
+                                                    totalAmount - (booking.deposit || 0)
+                                                ).toLocaleString()}
                       </span>
                                         </div>
                                     </div>
@@ -665,16 +655,16 @@ export default function EditBookingPage() {
                             </CardContent>
                             <CardFooter className="flex justify-between">
                                 <Button type="button" variant="outline" asChild>
-                                    <Link to={`/bookings/${id}`}>Cancel</Link>
+                                    <Link to={`/bookings/${id}`}>Go Back, No Fight</Link>
                                 </Button>
                                 <Button type="submit" disabled={submitting}>
                                     {submitting ? (
                                         <>
                                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                            Updating...
+                                            Updating with might...
                                         </>
                                     ) : (
-                                        "Update Booking"
+                                        "Update Booking, Make It Right"
                                     )}
                                 </Button>
                             </CardFooter>

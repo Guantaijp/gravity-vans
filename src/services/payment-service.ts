@@ -2,70 +2,76 @@ import api from "./api"
 
 export interface Payment {
     _id: string
-    booking:
-        | string
-        | {
+    booking: string | {
         _id: string
-        customer: {
+        customer: string | {
             _id: string
-            name: string
+            fullName: string
+            email: string
         }
-        vehicle: {
+        vehicle: string | {
             _id: string
             name: string
+            model: string
+            licensePlate: string
         }
         startDate: string
         endDate: string
+        totalAmount: number
+        paidAmount: number
     }
     amount: number
-    method: "Cash" | "M-Pesa" | "Bank Transfer" | "Credit Card"
-    reference: string
-    status: "Completed" | "Pending" | "Failed"
-    date: string
+    method: "cash" | "card" | "bank" | "mobile" | "mpesa"
+    status: "pending" | "completed" | "failed" | "refunded"
     notes?: string
+    processedBy: string | {
+        _id: string
+        name: string
+        email: string
+    }
+    ownerCommission?: number
+    paidOutCommission?: number
+    reference?: string
+    paymentDate?: string
     createdAt: string
     updatedAt: string
 }
 
 export interface PaymentInput {
-    booking: string
+    bookingId: string
     amount: number
-    method: "Cash" | "M-Pesa" | "Bank Transfer" | "Credit Card"
-    reference: string
-    status: "Completed" | "Pending" | "Failed"
-    date: string
+    method: "cash" | "card" | "bank" | "mobile" | "mpesa"
+    reference?: string
     notes?: string
+    ownerCommission?: number
+    paidOutCommission?: number
+    paymentDate?: string
 }
 
-const PaymentService = {
+const paymentService = {
     async getAll(): Promise<Payment[]> {
-        const response = await api.get<{ payments: Payment[] }>("/payments")
-        return response.data.payments
+        const response = await api.get<Payment[]>("/payments")
+        return response.data || []
     },
 
-    async getById(id: string): Promise<Payment> {
-        const response = await api.get<{ payment: Payment }>(`/payments/${id}`)
-        return response.data.payment
+    async getOne(id: string): Promise<Payment> {
+        const response = await api.get<Payment>(`/payments/${id}`)
+        return response.data
     },
 
     async create(paymentData: PaymentInput): Promise<Payment> {
-        const response = await api.post<{ payment: Payment }>("/payments", paymentData)
-        return response.data.payment
+        const response = await api.post<Payment>("/payments", paymentData)
+        return response.data
     },
 
-    async update(id: string, paymentData: Partial<PaymentInput>): Promise<Payment> {
-        const response = await api.put<{ payment: Payment }>(`/payments/${id}`, paymentData)
-        return response.data.payment
+    async updateStatus(id: string, status: Payment["status"], notes?: string): Promise<Payment> {
+        const response = await api.patch<Payment>(`/payments/${id}/status`, { status, notes })
+        return response.data
     },
 
     async delete(id: string): Promise<void> {
         await api.delete(`/payments/${id}`)
-    },
-
-    async getPaymentsByBooking(bookingId: string): Promise<Payment[]> {
-        const response = await api.get<{ payments: Payment[] }>(`/payments/booking/${bookingId}`)
-        return response.data.payments
-    },
+    }
 }
 
-export default PaymentService
+export default paymentService

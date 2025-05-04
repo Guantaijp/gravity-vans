@@ -21,14 +21,18 @@ import CustomerService, { type Customer } from "../../services/customer-service"
 import VehicleService, { type Vehicle } from "../../services/vehicle-service"
 import DriverService, { type Driver } from "../../services/driver-service"
 import { toast } from "sonner"
+import { useAuth } from "../../contexts/auth-context"
 
 interface AdditionalService {
     name: string
+    cost: number
 }
 
 export default function NewBookingPage() {
     const navigate = useNavigate()
     const [isLoading, setIsLoading] = useState(false)
+    const { user } = useAuth() // Get the current user from auth context
+    console.log(user)
 
     // Form state
     const [startDate, setStartDate] = useState<Date>()
@@ -37,10 +41,17 @@ export default function NewBookingPage() {
     const [selectedCustomer, setSelectedCustomer] = useState<string>("")
     const [selectedDriver, setSelectedDriver] = useState<string>("")
     const [totalAmount, setTotalAmount] = useState<number>(0)
-    const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([{ name: "Driver Allowance" }])
+    const [initialPayment, setInitialPayment] = useState<number>(0)
+    const [paymentMethod, setPaymentMethod] = useState<string>("Cash")
+    const [paymentReference, setPaymentReference] = useState<string>("")
+    const [ownerCommission, setOwnerCommission] = useState<number>(0)
+    const [referrerCommission, setReferrerCommission] = useState<number>(0)
+    const [referrerName, setReferrerName] = useState<string>("")
+    const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([
+        { name: "Driver Allowance", cost: 0 },
+    ])
     const [notes, setNotes] = useState<string>("")
     const [status, setStatus] = useState<"Pending" | "Active" | "Completed" | "Cancelled">("Pending")
-    const [deposit, setDeposit] = useState<number>(0)
 
     // Outsourced vehicle state
     const [vehicleSource, setVehicleSource] = useState<"company" | "outsourced">("company")
@@ -49,7 +60,7 @@ export default function NewBookingPage() {
 
     // Data lists
     const [customers, setCustomers] = useState<Customer[]>([])
-    const [vehicles, setVehicles] = useState<Vehicle[]>([])
+    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     console.log(vehicles)
     const [drivers, setDrivers] = useState<Driver[]>([])
     console.log(drivers)
@@ -65,8 +76,8 @@ export default function NewBookingPage() {
                 setCustomers(customersData)
 
                 // Fetch all vehicles
-                const vehiclesData = await VehicleService.getAll()
-                setVehicles(vehiclesData)
+                const vehiclesData = await VehicleService.getAll(); // <-- Correct function call
+                setVehicles(vehiclesData);
 
                 // Fetch all drivers
                 const driversData = await DriverService.getAll()
@@ -89,11 +100,10 @@ export default function NewBookingPage() {
                 const startDateStr = startDate.toISOString()
                 const endDateStr = endDate.toISOString()
 
-                // Get the VehicleService singleton/instance first
-                // const availableVehiclesData = await VehicleService.getAvailableVehicles(startDateStr, endDateStr)
+                // Get available vehicles
                 setAvailableVehicles(await VehicleService.getAvailableVehicles(startDateStr, endDateStr))
 
-                // Same for driver service
+                // Get available drivers
                 const availableDriversData = await DriverService.getAvailableDrivers(startDateStr, endDateStr)
                 setAvailableDrivers(availableDriversData.filter((driver) => driver.status === "active"))
             } catch (error) {
@@ -105,7 +115,7 @@ export default function NewBookingPage() {
     }, [startDate, endDate])
 
     const handleAddService = () => {
-        setAdditionalServices([...additionalServices, { name: "" }])
+        setAdditionalServices([...additionalServices, { name: "", cost: 0 }])
     }
 
     const handleRemoveService = (index: number) => {
@@ -114,16 +124,20 @@ export default function NewBookingPage() {
         setAdditionalServices(updatedServices)
     }
 
-    const handleServiceChange = (index: number, value: string) => {
+    const handleServiceChange = (index: number, field: "name" | "cost", value: string | number) => {
         const updatedServices = [...additionalServices]
-        updatedServices[index].name = value
+        if (field === "name") {
+            updatedServices[index].name = value as string
+        } else {
+            updatedServices[index].cost = value as number
+        }
         setAdditionalServices(updatedServices)
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!startDate || !endDate || (!selectedVehicle && vehicleSource === "company") || !selectedCustomer) {
+        if (!startDate || !endDate || (vehicleSource === "company" && !selectedVehicle) || !selectedCustomer) {
             toast.error("Please fill in all required fields")
             return
         }
@@ -138,15 +152,20 @@ export default function NewBookingPage() {
             return
         }
 
+        if (!user?.id) {
+            toast.error("User authentication required")
+            return
+        }
+
         setIsLoading(true)
 
         try {
-            // Prepare additional services without cost
+            // Prepare additional services
             const services = additionalServices
                 .filter((service) => service.name)
                 .map((service) => ({
                     name: service.name,
-                    cost: 0, // Cost is now handled by the manual total amount
+                    cost: service.cost || 0,
                 }))
 
             // Add outsourced vehicle info to notes if applicable
@@ -156,20 +175,66 @@ export default function NewBookingPage() {
                 bookingNotes = outsourcedInfo + bookingNotes
             }
 
+            // Calculate company revenue
+            const companyRevenue = totalAmount - ownerCommission - referrerCommission
+
+            // Create booking data with proper commission structure
             const bookingData: BookingInput = {
                 customer: selectedCustomer,
-                vehicle: vehicleSource === "company" ? selectedVehicle : "", // Empty if outsourced
+                // For outsourced vehicles, use null instead of empty string
+                vehicle: vehicleSource === "company" ? selectedVehicle : null,
                 driver: selectedDriver && selectedDriver !== "no-driver" ? selectedDriver : undefined,
+                // Use the current user's ID from auth context
+                bookedBy: user.id,
                 startDate: startDate.toISOString(),
                 endDate: endDate.toISOString(),
                 status,
                 totalAmount,
-                deposit, // Add the deposit field
+                paymentStatus: initialPayment >= totalAmount ? "Paid" : initialPayment > 0 ? "Partially Paid" : "Unpaid",
                 additionalServices: services,
                 notes: bookingNotes || undefined,
+                // Format commissions according to the backend model
+                commissions: {
+                    companyRevenue,
+                    ownerPayout:
+                        ownerCommission > 0
+                            ? {
+                                amount: ownerCommission,
+                                paid: false,
+                                ownerName: outsourcedOwnerName || "Vehicle Owner",
+                            }
+                            : undefined,
+                    referrerPayout:
+                        referrerCommission > 0
+                            ? {
+                                amount: referrerCommission,
+                                paid: false,
+                                referrerName: referrerName || "Referrer",
+                            }
+                            : undefined,
+                },
+                // Add initial timeline entry
+                timeline: [
+                    {
+                        status,
+                        date: new Date().toISOString(),
+                        note: "Booking created",
+                    },
+                ],
             }
 
+            // Create the booking
             const result = await BookingService.create(bookingData)
+
+            // If there's an initial payment, add it
+            if (initialPayment > 0) {
+                await BookingService.addPayment(result._id, {
+                    amount: initialPayment,
+                    paymentMethod: paymentMethod,
+                    reference: paymentReference,
+                    notes: "Initial payment",
+                })
+            }
 
             toast.success("Booking created successfully")
             navigate(`/bookings/${result._id}`)
@@ -181,10 +246,14 @@ export default function NewBookingPage() {
         }
     }
 
+    // Calculate total services cost
+    const totalServicesCost = additionalServices.reduce((sum, service) => sum + (service.cost || 0), 0)
+
+
     return (
         <div className="flex flex-col">
             <header className="border-b">
-                <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
+                <div className="container flex h-16 items-center px-4 sm:px:6 lg:px-8">
                     <Link to="/bookings" className="mr-4">
                         <Button variant="ghost" size="icon">
                             <ChevronLeft className="h-4 w-4" />
@@ -360,7 +429,7 @@ export default function NewBookingPage() {
                                     <Label htmlFor="customer">Customer *</Label>
                                     <div className="flex gap-2">
                                         <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                                            <SelectTrigger id="customer"  className="flex-1">
+                                            <SelectTrigger id="customer" className="flex-1">
                                                 <SelectValue placeholder="Select customer" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -409,7 +478,7 @@ export default function NewBookingPage() {
                                     </Select>
                                 </div>
 
-                                {/* Additional Services (without cost) */}
+                                {/* Additional Services */}
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
                                         <Label>Additional Services</Label>
@@ -421,8 +490,11 @@ export default function NewBookingPage() {
                                     <div className="space-y-3 border rounded-md p-4">
                                         {additionalServices.map((service, index) => (
                                             <div key={index} className="grid grid-cols-12 gap-3 items-center">
-                                                <div className="col-span-11">
-                                                    <Select value={service.name} onValueChange={(value) => handleServiceChange(index, value)}>
+                                                <div className="col-span-7">
+                                                    <Select
+                                                        value={service.name}
+                                                        onValueChange={(value) => handleServiceChange(index, "name", value)}
+                                                    >
                                                         <SelectTrigger>
                                                             <SelectValue placeholder="Select service" />
                                                         </SelectTrigger>
@@ -436,6 +508,18 @@ export default function NewBookingPage() {
                                                             <SelectItem value="Other">Other</SelectItem>
                                                         </SelectContent>
                                                     </Select>
+                                                </div>
+                                                <div className="col-span-4">
+                                                    <div className="flex items-center">
+                                                        <span className="mr-2 text-sm font-medium">KES</span>
+                                                        <Input
+                                                            type="number"
+                                                            value={service.cost}
+                                                            onChange={(e) => handleServiceChange(index, "cost", Number(e.target.value))}
+                                                            min={0}
+                                                            className="w-full"
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div className="col-span-1 flex justify-end">
                                                     <Button
@@ -470,24 +554,123 @@ export default function NewBookingPage() {
                                             className="w-full"
                                         />
                                     </div>
+                                    {totalServicesCost > 0 && (
+                                        <p className="text-xs text-muted-foreground">
+                                            Services cost: KES {totalServicesCost.toLocaleString()}
+                                        </p>
+                                    )}
                                 </div>
 
-                                {/* Deposit Amount Input */}
+                                {/* Initial Payment Amount Input */}
                                 <div className="space-y-2">
-                                    <Label htmlFor="deposit">Deposit Amount (KES) *</Label>
+                                    <Label htmlFor="initialPayment">Initial Payment (KES)</Label>
                                     <div className="flex items-center">
                                         <span className="mr-2 text-sm font-medium">KES</span>
                                         <Input
-                                            id="deposit"
+                                            id="initialPayment"
                                             type="number"
-                                            value={deposit}
-                                            onChange={(e) => setDeposit(Number(e.target.value))}
+                                            value={initialPayment}
+                                            onChange={(e) => setInitialPayment(Number(e.target.value))}
                                             min={0}
                                             max={totalAmount}
                                             className="w-full"
                                         />
                                     </div>
-                                    <p className="text-xs text-muted-foreground">Required deposit amount from the customer</p>
+                                    <p className="text-xs text-muted-foreground">Initial payment amount from the customer</p>
+                                </div>
+
+                                {/* Payment Method */}
+                                {initialPayment > 0 && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="paymentMethod">Payment Method</Label>
+                                            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                                                <SelectTrigger id="paymentMethod">
+                                                    <SelectValue placeholder="Select payment method" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Cash">Cash</SelectItem>
+                                                    <SelectItem value="M-Pesa">M-Pesa</SelectItem>
+                                                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                                                    <SelectItem value="Credit Card">Credit Card</SelectItem>
+                                                    <SelectItem value="Other">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="paymentReference">Reference/Transaction ID</Label>
+                                            <Input
+                                                id="paymentReference"
+                                                value={paymentReference}
+                                                onChange={(e) => setPaymentReference(e.target.value)}
+                                                placeholder="Enter reference or transaction ID"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Commission Section */}
+                                <div className="space-y-4 border rounded-md p-4">
+                                    <h3 className="font-medium">Commission Information</h3>
+
+                                    {/* Owner Commission */}
+                                    {vehicleSource === "outsourced" && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="ownerCommission">Owner Commission (KES)</Label>
+                                            <div className="flex items-center">
+                                                <span className="mr-2 text-sm font-medium">KES</span>
+                                                <Input
+                                                    id="ownerCommission"
+                                                    type="number"
+                                                    value={ownerCommission}
+                                                    onChange={(e) => setOwnerCommission(Number(e.target.value))}
+                                                    min={0}
+                                                    className="w-full"
+                                                />
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">Commission to be paid to the vehicle owner</p>
+                                        </div>
+                                    )}
+
+                                    {/* Referrer Commission */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="referrerCommission">Referrer Commission (KES)</Label>
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="mr-2 text-sm font-medium">KES</span>
+                                            <Input
+                                                id="referrerCommission"
+                                                type="number"
+                                                value={referrerCommission}
+                                                onChange={(e) => setReferrerCommission(Number(e.target.value))}
+                                                min={0}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {referrerCommission > 0 && (
+                                        <div className="space-y-2">
+                                            <Label htmlFor="referrerName">Referrer Name</Label>
+                                            <Input
+                                                id="referrerName"
+                                                value={referrerName}
+                                                onChange={(e) => setReferrerName(e.target.value)}
+                                                placeholder="Enter referrer's name"
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Company Revenue (calculated) */}
+                                    <div className="pt-2 border-t mt-2">
+                                        <div className="flex justify-between items-center">
+                                            <span className="font-medium">Company Revenue:</span>
+                                            <span>
+                        KES {Math.max(0, totalAmount - ownerCommission - referrerCommission).toLocaleString()}
+                      </span>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Booking Status */}
@@ -540,17 +723,35 @@ export default function NewBookingPage() {
                                             service.name ? (
                                                 <div key={index} className="flex justify-between">
                                                     <span>{service.name}</span>
-                                                    <span>Included</span>
+                                                    <span>KES {service.cost.toLocaleString()}</span>
                                                 </div>
                                             ) : null,
                                         )}
                                         <div className="flex justify-between">
-                                            <span>Deposit:</span>
-                                            <span>KES {deposit.toLocaleString()}</span>
+                                            <span>Initial Payment:</span>
+                                            <span>KES {initialPayment.toLocaleString()}</span>
                                         </div>
                                         <div className="flex justify-between">
                                             <span>Balance:</span>
-                                            <span>KES {(totalAmount - deposit).toLocaleString()}</span>
+                                            <span>KES {(totalAmount - initialPayment).toLocaleString()}</span>
+                                        </div>
+                                        {vehicleSource === "outsourced" && (
+                                            <div className="flex justify-between">
+                                                <span>Owner Commission:</span>
+                                                <span>KES {ownerCommission.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {referrerCommission > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>Referrer Commission:</span>
+                                                <span>KES {referrerCommission.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between">
+                                            <span>Company Revenue:</span>
+                                            <span>
+                        KES {Math.max(0, totalAmount - ownerCommission - referrerCommission).toLocaleString()}
+                      </span>
                                         </div>
                                         <div className="flex justify-between font-medium pt-2 border-t mt-2">
                                             <span>Total Amount:</span>

@@ -118,15 +118,17 @@ export default function InvoicePage() {
         const total = subtotal + tax
 
         // Calculate balance
-        const balance = booking.calculatedBalance || booking.balance || total - booking.deposit
+        const balance = booking.calculatedBalance
+            || booking.balance
+            || total - (booking.deposit ?? 0);
 
         setInvoiceItems(items)
         setInvoiceTotals({
-            subtotal,
-            tax,
-            total,
-            balance,
-        })
+            subtotal: Number(subtotal),
+            tax: Number(tax),
+            total: Number(total),
+            balance: Number(balance),
+        });
     }
 
     const handleSendToWhatsApp = async () => {
@@ -146,9 +148,18 @@ Vehicle: ${vehicleName}
 Period: ${new Date(booking!.startDate).toLocaleDateString()} to ${new Date(booking!.endDate).toLocaleDateString()}
 
 *TOTAL:* KES ${booking!.totalAmount.toLocaleString()}
-*PAID:* KES ${booking!.deposit.toLocaleString()}
-*BALANCE DUE:* KES ${(booking!.calculatedBalance || booking!.balance || booking!.totalAmount - booking!.deposit).toLocaleString()}
-
+*PAID:* KES ${booking?.deposit?.toLocaleString() ?? '0'}
+{booking ? (
+  <div>
+    <strong>BALANCE DUE:</strong> KES {(
+      booking.calculatedBalance || 
+      booking.balance || 
+      (booking.totalAmount - booking.deposit)
+    ).toLocaleString()}
+  </div>
+) : (
+  <div>No booking information available.</div>
+)}
 Thank you for choosing Gravity Vans!
       `.trim()
 
@@ -191,7 +202,7 @@ Thank you for choosing Gravity Vans!
     }
 
     const customerName =
-        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.name || ""
+        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.fullName || ""
 
     const customerEmail = typeof booking.customer === "string" ? "" : booking.customer?.email || ""
 
@@ -347,20 +358,21 @@ Thank you for choosing Gravity Vans!
                                                 <span>Total:</span>
                                                 <span>KES {booking.totalAmount.toLocaleString()}</span>
                                             </div>
-                                            <div className="flex justify-between text-sm pt-2">
-                                                <span className="text-muted-foreground">Amount Paid:</span>
-                                                <span>KES {booking.deposit.toLocaleString()}</span>
-                                            </div>
+                                            {/*<div className="flex justify-between text-sm pt-2">*/}
+                                            {/*    <span className="text-muted-foreground">Amount Paid:</span>*/}
+                                            {/*    <span>KES {booking.deposit.toLocaleString()}</span>*/}
+                                            {/*</div>*/}
                                             <div className="flex justify-between font-bold text-primary">
                                                 <span>Balance Due:</span>
                                                 <span>
-                          KES{" "}
+  KES{" "}
                                                     {(
-                                                        booking.calculatedBalance ||
-                                                        booking.balance ||
-                                                        booking.totalAmount - booking.deposit
+                                                        booking.calculatedBalance ??
+                                                        booking.balance ??
+                                                        (booking.totalAmount - (booking.deposit ?? 0))
                                                     ).toLocaleString()}
-                        </span>
+</span>
+
                                             </div>
                                         </div>
                                     </div>

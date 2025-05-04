@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
+import { Link,useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
@@ -13,31 +13,15 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "../../components/ui/dialog"
-import { Calendar } from "../../components/ui/calendar"
-import { Label } from "../../components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "../../components/ui/popover"
-import { format } from "date-fns"
-import { cn } from "../../lib/utils"
 import PaymentService, { Payment } from "../../services/payment-service" // Import the PaymentService
 
 export default function PaymentsPage() {
     const [searchTerm, setSearchTerm] = useState("")
     const [filterStatus, setFilterStatus] = useState("all")
-    const [paymentDate, setPaymentDate] = useState<Date>()
-    const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false)
     const [payments, setPayments] = useState<Payment[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const navigate = useNavigate(); // Initialize the navigate function
 
     // Fetch payments on component mount
     useEffect(() => {
@@ -61,38 +45,50 @@ export default function PaymentsPage() {
 
     // Filter payments based on search term and status filter
     const filteredPayments = payments ? payments.filter((payment) => {
-        const matchesSearch =
-            payment._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (typeof payment.booking === 'object'
-                ? payment.booking._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (payment.booking.customer && payment.booking.customer.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                : payment.booking.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            payment.reference.toLowerCase().includes(searchTerm.toLowerCase())
+        const search = searchTerm.toLowerCase();
 
-        const matchesStatus = filterStatus === "all" || payment.status.toLowerCase() === filterStatus.toLowerCase()
+        const matchesId = payment._id.toLowerCase().includes(search);
 
-        return matchesSearch && matchesStatus
-    }) : []
+        const bookingMatches = typeof payment.booking === 'object' && payment.booking !== null
+            ? payment.booking._id?.toLowerCase().includes(search) ||
+            (typeof payment.booking.customer === 'object' &&
+                'fullName' in payment.booking.customer &&
+                payment.booking.customer.fullName?.toLowerCase().includes(search))
+            : typeof payment.booking === 'string' &&
+            payment.booking.toLowerCase().includes(search);
+
+        const referenceMatches = payment.reference?.toLowerCase().includes(search) ?? false;
+
+        const matchesSearch = matchesId || bookingMatches || referenceMatches;
+
+        const matchesStatus = filterStatus === "all" || payment.status?.toLowerCase() === filterStatus.toLowerCase();
+
+        return matchesSearch && matchesStatus;
+    }) : [];
+
 
     // Calculate summary statistics
     const totalPayments = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0
     const completedPayments = payments
-        ? payments.filter((payment) => payment.status === "Completed")
+        ? payments.filter((payment) => payment.status === "completed")
             .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0
+        : 0;
+
     const pendingPayments = payments
-        ? payments.filter((payment) => payment.status === "Pending")
+        ? payments.filter((payment) => payment.status === "pending")
             .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0
+        : 0;
+
     const failedPayments = payments
-        ? payments.filter((payment) => payment.status === "Failed")
+        ? payments.filter((payment) => payment.status === "failed")
             .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0
+        : 0;
+
 
     // Get counts for each status
-    const completedCount = payments ? payments.filter((payment) => payment.status === "Completed").length : 0
-    const pendingCount = payments ? payments.filter((payment) => payment.status === "Pending").length : 0
-    const failedCount = payments ? payments.filter((payment) => payment.status === "Failed").length : 0
+    const completedCount = payments ? payments.filter((payment) => payment.status === "completed").length : 0
+    const pendingCount = payments ? payments.filter((payment) => payment.status === "pending").length : 0
+    const failedCount = payments ? payments.filter((payment) => payment.status === "failed").length : 0
 
     // Function to get badge color based on status
     const getStatusBadge = (status: string) => {
@@ -124,17 +120,22 @@ export default function PaymentsPage() {
     }
 
     // Function to get customer name from payment object
-    const getCustomerName = (payment: Payment) => {
-        if (typeof payment.booking === 'object' && payment.booking.customer) {
-            return payment.booking.customer.name
-        }
-        return 'N/A'
-    }
+    // const getCustomerName = (payment: Payment) => {
+    //     if (
+    //         typeof payment.booking === 'object' &&
+    //         payment.booking?.customer &&
+    //         typeof payment.booking.customer === 'object' &&
+    //         'fullName' in payment.booking.customer
+    //     ) {
+    //         return payment.booking.customer.fullName;
+    //     }
+    //     return 'N/A';
+    // };
 
     // Function to get booking ID from payment object
     const getBookingId = (payment: Payment) => {
-        if (typeof payment.booking === 'object' && payment.booking._id) {
-            return payment.booking._id
+        if (typeof payment.booking === 'object' && payment.booking?._id) {
+            return payment.booking?._id
         }
         return typeof payment.booking === 'string' ? payment.booking : 'N/A'
     }
@@ -144,132 +145,9 @@ export default function PaymentsPage() {
             <header className="border-b">
                 <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-2xl font-bold">Payment Management</h1>
-                    <Dialog open={isRecordPaymentOpen} onOpenChange={setIsRecordPaymentOpen}>
-                        <DialogTrigger asChild>
-                            <Button>
-                                <Plus className="mr-2 h-4 w-4" /> Record Payment
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[500px]">
-                            <DialogHeader>
-                                <DialogTitle>Record New Payment</DialogTitle>
-                                <DialogDescription>Enter the details of the payment received from a customer.</DialogDescription>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="booking" className="text-right">
-                                        Booking
-                                    </Label>
-                                    <div className="col-span-3">
-                                        <Select>
-                                            <SelectTrigger id="booking">
-                                                <SelectValue placeholder="Select booking" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="B-2023-001">B-2023-001 - John Kamau</SelectItem>
-                                                <SelectItem value="B-2023-002">B-2023-002 - Mary Wanjiku</SelectItem>
-                                                <SelectItem value="B-2023-003">B-2023-003 - David Ochieng</SelectItem>
-                                                <SelectItem value="B-2023-004">B-2023-004 - Sarah Njeri</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="amount" className="text-right">
-                                        Amount (KES)
-                                    </Label>
-                                    <Input
-                                        id="amount"
-                                        type="number"
-                                        placeholder="Enter amount"
-                                        className="col-span-3"
-                                        defaultValue="5000"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="method" className="text-right">
-                                        Payment Method
-                                    </Label>
-                                    <div className="col-span-3">
-                                        <Select defaultValue="mpesa">
-                                            <SelectTrigger id="method">
-                                                <SelectValue placeholder="Select method" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="M-Pesa">M-Pesa</SelectItem>
-                                                <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                                                <SelectItem value="Cash">Cash</SelectItem>
-                                                <SelectItem value="Credit Card">Credit Card</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="reference" className="text-right">
-                                        Reference
-                                    </Label>
-                                    <Input
-                                        id="reference"
-                                        placeholder="Transaction reference"
-                                        className="col-span-3"
-                                        defaultValue="MPESA123456"
-                                    />
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="date" className="text-right">
-                                        Payment Date
-                                    </Label>
-                                    <div className="col-span-3">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    variant="outline"
-                                                    className={cn(
-                                                        "w-full justify-start text-left font-normal",
-                                                        !paymentDate && "text-muted-foreground",
-                                                    )}
-                                                >
-                                                    <Calendar className="mr-2 h-4 w-4" />
-                                                    {paymentDate ? format(paymentDate, "PPP") : "Select date"}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={paymentDate}
-                                                    onSelect={setPaymentDate}
-                                                    initialFocus
-                                                    disabled={(date: any) => date > new Date()}
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-4 items-center gap-4">
-                                    <Label htmlFor="status" className="text-right">
-                                        Status
-                                    </Label>
-                                    <div className="col-span-3">
-                                        <Select defaultValue="Completed">
-                                            <SelectTrigger id="status">
-                                                <SelectValue placeholder="Select status" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Completed">Completed</SelectItem>
-                                                <SelectItem value="Pending">Pending</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </div>
-                            </div>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setIsRecordPaymentOpen(false)}>
-                                    Cancel
-                                </Button>
-                                <Button onClick={() => setIsRecordPaymentOpen(false)}>Save Payment</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button onClick={() => navigate('/payments/new')}>  {/* Navigate to new payment form */}
+                        <Plus className="mr-2 h-4 w-4" /> Record Payment
+                    </Button>
                 </div>
             </header>
             <main className="flex-1 p-4 sm:p-6 lg:p-8">
@@ -385,7 +263,7 @@ export default function PaymentsPage() {
                                                 </div>
                                             </TableHead>
                                             <TableHead>Booking ID</TableHead>
-                                            <TableHead>Customer</TableHead>
+                                            {/*<TableHead>Customer</TableHead>*/}
                                             <TableHead>
                                                 <div className="flex items-center">
                                                     Date
@@ -420,8 +298,8 @@ export default function PaymentsPage() {
                                                             {getBookingId(payment)}
                                                         </Link>
                                                     </TableCell>
-                                                    <TableCell>{getCustomerName(payment)}</TableCell>
-                                                    <TableCell>{new Date(payment.date).toLocaleDateString()}</TableCell>
+                                                    {/*<TableCell>{getCustomerName(payment)}</TableCell>*/}
+                                                    <TableCell>{new Date(payment.paymentDate ?? '').toLocaleDateString()}</TableCell>
                                                     <TableCell className="text-right">KES {payment.amount.toLocaleString()}</TableCell>
                                                     <TableCell>{payment.method}</TableCell>
                                                     <TableCell>{payment.reference}</TableCell>
@@ -437,8 +315,8 @@ export default function PaymentsPage() {
                                                             <DropdownMenuContent align="end">
                                                                 <DropdownMenuItem>View details</DropdownMenuItem>
                                                                 <DropdownMenuItem>Print receipt</DropdownMenuItem>
-                                                                {payment.status === "Pending" && <DropdownMenuItem>Confirm payment</DropdownMenuItem>}
-                                                                {payment.status === "Failed" && <DropdownMenuItem>Retry payment</DropdownMenuItem>}
+                                                                {payment.status === "pending" && <DropdownMenuItem>Confirm payment</DropdownMenuItem>}
+                                                                {payment.status === "failed" && <DropdownMenuItem>Retry payment</DropdownMenuItem>}
                                                                 <DropdownMenuItem className="text-destructive">Void payment</DropdownMenuItem>
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>

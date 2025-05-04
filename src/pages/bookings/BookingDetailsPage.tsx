@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, Link } from "react-router-dom"
+import { useParams, Link,useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
 import { Badge } from "../../components/ui/badge"
@@ -16,7 +16,7 @@ export default function BookingDetailsPage() {
     const [booking, setBooking] = useState<Booking | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-
+    const navigate = useNavigate();
     const { execute: fetchBooking } = useApi((id?: string) => {
         if (!id) return Promise.reject(new Error("Booking ID is required"))
         return BookingService.getOne(id)
@@ -104,14 +104,17 @@ export default function BookingDetailsPage() {
     }
 
     const customerName =
-        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.name || ""
+        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.fullName || ""
 
 
     const customerEmail = typeof booking.customer === "string" ? "" : booking.customer?.email || ""
 
     const customerPhone = typeof booking.customer === "string" ? "" : booking.customer?.phone || ""
 
-    const vehicleName = typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle?.name || ""
+    const vehicleName = typeof booking.vehicle === "string"
+        ? booking.vehicle
+        : booking.vehicle?.name || (booking.commissions?.ownerPayout?.ownerName ? `Vehicle owned by ${booking.commissions.ownerPayout.ownerName}` : "Unknown vehicle");
+
 
     const vehicleType = typeof booking.vehicle === "string" ? "" : booking.vehicle?.type || ""
 
@@ -196,17 +199,27 @@ export default function BookingDetailsPage() {
                                     <div className="space-y-2 text-sm">
                                         <div>
                                             <span className="font-medium">{vehicleName}</span>
-                                            {typeof booking.vehicle !== "string" && booking.vehicle._id && (
-                                                <span className="text-xs text-muted-foreground ml-2">({booking.vehicle._id})</span>
+                                            {typeof booking.vehicle !== "string" && booking.vehicle?._id && (
+                                                <span className="text-xs text-muted-foreground ml-2">({booking.vehicle?._id})</span>
                                             )}
                                         </div>
                                         {vehicleType && <div className="text-muted-foreground">{vehicleType}</div>}
                                         {vehicleLicensePlate && (
                                             <div className="text-muted-foreground">License Plate: {vehicleLicensePlate}</div>
                                         )}
+
+                                        {/* Display commission data if available */}
+                                        {booking.commissions?.ownerPayout?.amount && (
+                                            <div className="mt-2 pt-2 border-t border-dashed">
+                                                <div className="text-muted-foreground">Owner Payout: KES {booking.commissions.ownerPayout.amount.toLocaleString()}</div>
+                                                {booking.commissions.ownerPayout.ownerName && (
+                                                    <div className="text-muted-foreground">Owner: {booking.commissions.ownerPayout.ownerName}</div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </CardContent>
-                                {typeof booking.vehicle !== "string" && booking.vehicle._id && (
+                                {typeof booking.vehicle !== "string" && booking.vehicle?._id && (
                                     <CardFooter className="pt-0">
                                         <Button variant="ghost" size="sm" className="text-xs" asChild>
                                             <Link to={`/vehicles/${booking.vehicle._id}`}>View Vehicle Details</Link>
@@ -341,13 +354,15 @@ export default function BookingDetailsPage() {
                                         <span className="text-muted-foreground">Total Amount:</span>
                                         <span className="font-medium">KES {booking.totalAmount.toLocaleString()}</span>
                                     </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">Paid Amount:</span>
-                                        <span className="font-medium">KES {booking.deposit.toLocaleString()}</span>
-                                    </div>
+                                    {/*<div className="flex justify-between text-sm">*/}
+                                    {/*    <span className="text-muted-foreground">Paid Amount:</span>*/}
+                                    {/*    <span className="font-medium">KES {booking.deposit.toLocaleString()}</span>*/}
+                                    {/*</div>*/}
                                     <div className="flex justify-between text-sm">
                                         <span className="text-muted-foreground">Balance Due:</span>
-                                        <span className="font-medium">KES {booking.balance.toLocaleString()}</span>
+                                        <span className="font-medium">
+                                          KES {booking.balance?.toLocaleString() ?? '0'}
+                                        </span>
                                     </div>
                                     <div className="pt-2 border-t">
                                         <div className="flex justify-between items-center">
@@ -369,7 +384,7 @@ export default function BookingDetailsPage() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button className="w-full">
+                                <Button className="w-full" onClick={() => navigate('/payments/new')}>
                                     <CreditCard className="mr-2 h-4 w-4" />
                                     Record Payment
                                 </Button>

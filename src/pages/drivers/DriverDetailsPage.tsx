@@ -356,7 +356,7 @@ export default function DriverDetailsPage() {
                                                                         {new Date(booking.endDate).toLocaleDateString()}
                                                                     </p>
                                                                     <p className="text-sm mt-1">
-                                                                        {typeof booking.customer === 'object' ? booking.customer.name : 'Customer'} •
+                                                                        {typeof booking.customer === 'object' ? booking.customer.fullName : 'Customer'} •
                                                                         {typeof booking.vehicle === 'object' ? ` ${booking.vehicle.name}` : ' Vehicle'}
                                                                     </p>
                                                                 </div>

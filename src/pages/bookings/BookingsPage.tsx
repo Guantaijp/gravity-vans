@@ -93,8 +93,8 @@ export default function BookingsPage() {
                 const customerName =
                     typeof booking.customer === "string"
                         ? ""
-                        : (booking.customer.name || booking.customer.fullName || "").toLowerCase()
-                const vehicleName = typeof booking.vehicle === "string" ? "" : (booking.vehicle.name || "").toLowerCase()
+                        : (booking.customer?.fullName || booking.customer?.fullName || "").toLowerCase()
+                const vehicleName = typeof booking.vehicle === "string" ? "" : (booking.vehicle?.name || "").toLowerCase()
 
                 return (
                     booking._id.toLowerCase().includes(lowercaseQuery) ||
@@ -192,10 +192,11 @@ export default function BookingsPage() {
                 <TableCell>
                     {typeof booking.customer === "string"
                         ? booking.customer
-                        : booking.customer.fullName || booking.customer.name || ""}
+                        : booking.customer?.fullName || booking.customer?.fullName || ""}
                 </TableCell>
                 <TableCell>
-                    {typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle.name}
+                    {!booking.vehicle ? "Out Sourced" :
+                        typeof booking.vehicle === "string" ? booking.vehicle : booking.vehicle?.name}
                 </TableCell>
                 <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
                 <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>
