@@ -13,14 +13,30 @@ export default function Sidebar() {
     const [isOpen, setIsOpen] = useState(false)
     const { user } = useAuth()
 
-    const routes = [
-        { name: "Dashboard", path: "/", icon: Home },
-        { name: "Vehicles", path: "/vehicles", icon: Car },
-        { name: "Bookings", path: "/bookings", icon: Calendar },
-        { name: "Customers", path: "/customers", icon: Users },
-        { name: "Drivers", path: "/drivers", icon: Users },
-        { name: "Payments", path: "/payments", icon: CreditCard },
-    ]
+    // Define routes based on user role
+    const getRoutes = () => {
+        // Staff can only access vehicles, bookings, customers, and drivers
+        if (user?.role === "staff") {
+            return [
+                { name: "Vehicles", path: "/vehicles", icon: Car },
+                { name: "Bookings", path: "/bookings", icon: Calendar },
+                { name: "Customers", path: "/customers", icon: Users },
+                { name: "Drivers", path: "/drivers", icon: Users },
+            ]
+        }
+
+        // Admin can access all routes
+        return [
+            { name: "Dashboard", path: "/dashboard", icon: Home },
+            { name: "Vehicles", path: "/vehicles", icon: Car },
+            { name: "Bookings", path: "/bookings", icon: Calendar },
+            { name: "Customers", path: "/customers", icon: Users },
+            { name: "Drivers", path: "/drivers", icon: Users },
+            { name: "Payments", path: "/payments", icon: CreditCard },
+        ]
+    }
+
+    const routes = getRoutes()
 
     return (
         <>
@@ -43,7 +59,7 @@ export default function Sidebar() {
                         <div className="flex flex-col items-center justify-center py-2">
                             <div className="w-48 h-24">
                                 <img
-                                    src={Logo}
+                                    src={Logo || "/placeholder.svg"}
                                     alt="Gravity Vans Logo"
                                     className="w-full h-full object-contain"
                                 />
@@ -77,13 +93,21 @@ export default function Sidebar() {
                     <div className="p-4 border-t border-sidebar-border">
                         <div className="flex items-center px-3 py-2">
                             <div className="w-10 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                                <span className="text-white font-bold">
-                                    {user?.name ? user.name.split(' ').map(name => name[0]).join('').slice(0, 2).toUpperCase() : 'GV'}
-                                </span>
+                <span className="text-white font-bold">
+                  {user?.name
+                      ? user.name
+                          .split(" ")
+                          .map((name) => name[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()
+                      : "GV"}
+                </span>
                             </div>
                             <div className="ml-3">
-                                <p className="text-sm font-medium text-white">{user?.name || 'Admin User'}</p>
-                                <p className="text-xs text-gray-400">{user?.email || 'admin@gravityvans.co.ke'}</p>
+                                <p className="text-sm font-medium text-white">{user?.name || "Admin User"}</p>
+                                <p className="text-xs text-gray-400">{user?.email || "admin@gravityvans.co.ke"}</p>
+                                <p className="text-xs text-gray-400 capitalize">{user?.role || "admin"}</p>
                             </div>
                         </div>
                     </div>

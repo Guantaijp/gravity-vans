@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState,useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Eye, EyeOff, Lock, Mail } from "lucide-react"
 import { useAuth } from "../../contexts/auth-context"
@@ -17,7 +17,19 @@ export default function LoginPage() {
     const [error, setError] = useState("")
 
     const navigate = useNavigate()
-    const { login } = useAuth()
+    const { login, user, isAuthenticated } = useAuth()
+
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            // Redirect based on user role
+            if (user.role === "staff") {
+                navigate("/bookings")
+            } else {
+                navigate("/dashboard")
+            }
+        }
+    }, [isAuthenticated, user, navigate])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -25,15 +37,16 @@ export default function LoginPage() {
         setIsLoading(true)
 
         try {
+            // Call login but don't try to use the return value
             await login(email, password)
-            navigate("/dashboard")
+            // Redirection will happen in the useEffect above once user state updates
         } catch (err) {
             console.error("Login error:", err)
             setError("Invalid email or password. Please try again.")
-        } finally {
             setIsLoading(false)
         }
     }
+
 
     return (
         <div className="flex h-screen w-full bg-gray-50">

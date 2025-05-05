@@ -15,7 +15,7 @@ interface AuthContextType {
     user: User | null
     isAuthenticated: boolean
     isLoading: boolean
-    login: (email: string, password: string) => Promise<void>
+    login: (email: string, password: string) => Promise<void> // Changed return type to match implementation
     logout: () => void
 }
 
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuth()
     }, [])
 
-    const login = async (email: string, password: string) => {
+    const login = async (email: string, password: string): Promise<void> => {
         setIsLoading(true)
         try {
             const response = await AuthService.login({ email, password })
