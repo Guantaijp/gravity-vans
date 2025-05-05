@@ -1,19 +1,36 @@
+"use client"
+
 import { useState, useEffect } from "react"
-import { Link,useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Button } from "../../components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card"
 import { Input } from "../../components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
 import { Badge } from "../../components/ui/badge"
-import { Search, Plus, Filter, MoreHorizontal, CreditCard, CheckCircle2, XCircle, Clock, Download, ArrowUpDown } from 'lucide-react'
+import {
+    Search,
+    Plus,
+    Filter,
+    MoreHorizontal,
+    CreditCard,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    Download,
+    ArrowUpDown,
+} from "lucide-react"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu"
-import PaymentService, { Payment } from "../../services/payment-service" // Import the PaymentService
+import PaymentService, { type Payment } from "../../services/payment-service"
+import PaymentReceipt from "../payments/payment-receipt"
+import PaymentDetailsModal from "../payments/payment-details-modal.tsx"
+import { exportPaymentsToCSV } from "../../lib/csv-export"
+import { toast } from "sonner"
 
 export default function PaymentsPage() {
     const [searchTerm, setSearchTerm] = useState("")
@@ -21,69 +38,69 @@ export default function PaymentsPage() {
     const [payments, setPayments] = useState<Payment[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const navigate = useNavigate(); // Initialize the navigate function
+    const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
+    const [showReceipt, setShowReceipt] = useState(false)
+    const [showDetails, setShowDetails] = useState(false)
+    const navigate = useNavigate()
 
     // Fetch payments on component mount
     useEffect(() => {
-        async function fetchPayments() {
-            try {
-                setIsLoading(true)
-                const data = await PaymentService.getAll()
-                setPayments(data || []) // Ensure we always have an array even if API returns null/undefined
-                setError(null)
-            } catch (err) {
-                setError("Failed to load payments. Please try again later.")
-                console.error("Error fetching payments:", err)
-                setPayments([]) // Initialize to empty array on error
-            } finally {
-                setIsLoading(false)
-            }
-        }
-
         fetchPayments()
     }, [])
 
+    async function fetchPayments() {
+        try {
+            setIsLoading(true)
+            const data = await PaymentService.getAll()
+            setPayments(data || []) // Ensure we always have an array even if API returns null/undefined
+            setError(null)
+        } catch (err) {
+            setError("Failed to load payments. Please try again later.")
+            console.error("Error fetching payments:", err)
+            setPayments([]) // Initialize to empty array on error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     // Filter payments based on search term and status filter
-    const filteredPayments = payments ? payments.filter((payment) => {
-        const search = searchTerm.toLowerCase();
+    const filteredPayments = payments
+        ? payments.filter((payment) => {
+            const search = searchTerm.toLowerCase()
 
-        const matchesId = payment._id.toLowerCase().includes(search);
+            const matchesId = payment._id.toLowerCase().includes(search)
 
-        const bookingMatches = typeof payment.booking === 'object' && payment.booking !== null
-            ? payment.booking._id?.toLowerCase().includes(search) ||
-            (typeof payment.booking.customer === 'object' &&
-                'fullName' in payment.booking.customer &&
-                payment.booking.customer.fullName?.toLowerCase().includes(search))
-            : typeof payment.booking === 'string' &&
-            payment.booking.toLowerCase().includes(search);
+            const bookingMatches =
+                typeof payment.booking === "object" && payment.booking !== null
+                    ? payment.booking._id?.toLowerCase().includes(search) ||
+                    (typeof payment.booking.customer === "object" &&
+                        "fullName" in payment.booking.customer &&
+                        payment.booking.customer.fullName?.toLowerCase().includes(search))
+                    : typeof payment.booking === "string" && payment.booking.toLowerCase().includes(search)
 
-        const referenceMatches = payment.reference?.toLowerCase().includes(search) ?? false;
+            const referenceMatches = payment.reference?.toLowerCase().includes(search) ?? false
 
-        const matchesSearch = matchesId || bookingMatches || referenceMatches;
+            const matchesSearch = matchesId || bookingMatches || referenceMatches
 
-        const matchesStatus = filterStatus === "all" || payment.status?.toLowerCase() === filterStatus.toLowerCase();
+            const matchesStatus = filterStatus === "all" || payment.status?.toLowerCase() === filterStatus.toLowerCase()
 
-        return matchesSearch && matchesStatus;
-    }) : [];
-
+            return matchesSearch && matchesStatus
+        })
+        : []
 
     // Calculate summary statistics
     const totalPayments = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0
     const completedPayments = payments
-        ? payments.filter((payment) => payment.status === "completed")
-            .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0;
+        ? payments.filter((payment) => payment.status === "completed").reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
 
     const pendingPayments = payments
-        ? payments.filter((payment) => payment.status === "pending")
-            .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0;
+        ? payments.filter((payment) => payment.status === "pending").reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
 
     const failedPayments = payments
-        ? payments.filter((payment) => payment.status === "failed")
-            .reduce((sum, payment) => sum + payment.amount, 0)
-        : 0;
-
+        ? payments.filter((payment) => payment.status === "failed").reduce((sum, payment) => sum + payment.amount, 0)
+        : 0
 
     // Get counts for each status
     const completedCount = payments ? payments.filter((payment) => payment.status === "completed").length : 0
@@ -93,25 +110,25 @@ export default function PaymentsPage() {
     // Function to get badge color based on status
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case "Completed":
+            case "completed":
                 return (
                     <Badge className="bg-green-500">
                         <CheckCircle2 className="mr-1 h-3 w-3" />
-                        {status}
+                        Completed
                     </Badge>
                 )
-            case "Pending":
+            case "pending":
                 return (
                     <Badge className="bg-yellow-500">
                         <Clock className="mr-1 h-3 w-3" />
-                        {status}
+                        Pending
                     </Badge>
                 )
-            case "Failed":
+            case "failed":
                 return (
                     <Badge className="bg-destructive">
                         <XCircle className="mr-1 h-3 w-3" />
-                        {status}
+                        Failed
                     </Badge>
                 )
             default:
@@ -119,33 +136,45 @@ export default function PaymentsPage() {
         }
     }
 
-    // Function to get customer name from payment object
-    // const getCustomerName = (payment: Payment) => {
-    //     if (
-    //         typeof payment.booking === 'object' &&
-    //         payment.booking?.customer &&
-    //         typeof payment.booking.customer === 'object' &&
-    //         'fullName' in payment.booking.customer
-    //     ) {
-    //         return payment.booking.customer.fullName;
-    //     }
-    //     return 'N/A';
-    // };
-
     // Function to get booking ID from payment object
     const getBookingId = (payment: Payment) => {
-        if (typeof payment.booking === 'object' && payment.booking?._id) {
+        if (typeof payment.booking === "object" && payment.booking?._id) {
             return payment.booking?._id
         }
-        return typeof payment.booking === 'string' ? payment.booking : 'N/A'
+        return typeof payment.booking === "string" ? payment.booking : "N/A"
     }
+
+    // Handle dropdown menu actions
+    const handleViewDetails = (payment: Payment) => {
+        setSelectedPayment(payment)
+        setShowDetails(true)
+    }
+
+    const handlePrintReceipt = (payment: Payment) => {
+        setSelectedPayment(payment)
+        setShowReceipt(true)
+    }
+
+
+    // Handle export to CSV
+    const handleExportCSV = () => {
+        try {
+            const dataToExport = filteredPayments.length > 0 ? filteredPayments : payments
+            exportPaymentsToCSV(dataToExport)
+
+            toast.success("Payments data has been exported to CSV successfully.")
+        } catch (error:any) {
+            toast.error("Failed to export payments data. Please try again.")
+        }
+    }
+
 
     return (
         <div className="flex flex-col">
             <header className="border-b">
                 <div className="container flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
                     <h1 className="text-2xl font-bold">Payment Management</h1>
-                    <Button onClick={() => navigate('/payments/new')}>  {/* Navigate to new payment form */}
+                    <Button onClick={() => navigate("/payments/new")}>
                         <Plus className="mr-2 h-4 w-4" /> Record Payment
                     </Button>
                 </div>
@@ -228,9 +257,9 @@ export default function PaymentsPage() {
                                 <CardTitle>Payment Transactions</CardTitle>
                                 <CardDescription>View and manage all payment transactions</CardDescription>
                             </div>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" onClick={handleExportCSV}>
                                 <Download className="mr-2 h-4 w-4" />
-                                Export
+                                Export CSV
                             </Button>
                         </CardHeader>
                         <CardContent>
@@ -241,7 +270,7 @@ export default function PaymentsPage() {
                             ) : error ? (
                                 <div className="text-center py-10">
                                     <p className="text-destructive mb-4">{error}</p>
-                                    <Button onClick={() => window.location.reload()}>Try Again</Button>
+                                    <Button onClick={() => fetchPayments()}>Try Again</Button>
                                 </div>
                             ) : payments.length === 0 ? (
                                 <div className="text-center py-10">
@@ -263,7 +292,6 @@ export default function PaymentsPage() {
                                                 </div>
                                             </TableHead>
                                             <TableHead>Booking ID</TableHead>
-                                            {/*<TableHead>Customer</TableHead>*/}
                                             <TableHead>
                                                 <div className="flex items-center">
                                                     Date
@@ -298,8 +326,7 @@ export default function PaymentsPage() {
                                                             {getBookingId(payment)}
                                                         </Link>
                                                     </TableCell>
-                                                    {/*<TableCell>{getCustomerName(payment)}</TableCell>*/}
-                                                    <TableCell>{new Date(payment.paymentDate ?? '').toLocaleDateString()}</TableCell>
+                                                    <TableCell>{new Date(payment.paymentDate ?? "").toLocaleDateString()}</TableCell>
                                                     <TableCell className="text-right">KES {payment.amount.toLocaleString()}</TableCell>
                                                     <TableCell>{payment.method}</TableCell>
                                                     <TableCell>{payment.reference}</TableCell>
@@ -313,11 +340,28 @@ export default function PaymentsPage() {
                                                                 </Button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end">
-                                                                <DropdownMenuItem>View details</DropdownMenuItem>
-                                                                <DropdownMenuItem>Print receipt</DropdownMenuItem>
-                                                                {payment.status === "pending" && <DropdownMenuItem>Confirm payment</DropdownMenuItem>}
-                                                                {payment.status === "failed" && <DropdownMenuItem>Retry payment</DropdownMenuItem>}
-                                                                <DropdownMenuItem className="text-destructive">Void payment</DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleViewDetails(payment)}>
+                                                                    View details
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handlePrintReceipt(payment)}>
+                                                                    Print receipt
+                                                                </DropdownMenuItem>
+                                                                {/*{payment.status === "pending" && (*/}
+                                                                {/*    <DropdownMenuItem onClick={() => handleConfirmPayment(payment)}>*/}
+                                                                {/*        Confirm payment*/}
+                                                                {/*    </DropdownMenuItem>*/}
+                                                                {/*)}*/}
+                                                                {/*{payment.status === "failed" && (*/}
+                                                                {/*    <DropdownMenuItem onClick={() => handleRetryPayment(payment)}>*/}
+                                                                {/*        Retry payment*/}
+                                                                {/*    </DropdownMenuItem>*/}
+                                                                {/*)}*/}
+                                                                {/*<DropdownMenuItem*/}
+                                                                {/*    className="text-destructive"*/}
+                                                                {/*    onClick={() => handleVoidPayment(payment)}*/}
+                                                                {/*>*/}
+                                                                {/*    Void payment*/}
+                                                                {/*</DropdownMenuItem>*/}
                                                             </DropdownMenuContent>
                                                         </DropdownMenu>
                                                     </TableCell>
@@ -331,6 +375,28 @@ export default function PaymentsPage() {
                     </Card>
                 </div>
             </main>
+
+            {/* Payment Receipt Modal */}
+            {showReceipt && selectedPayment && (
+                <PaymentReceipt
+                    payment={selectedPayment}
+                    onClose={() => {
+                        setShowReceipt(false)
+                        setSelectedPayment(null)
+                    }}
+                />
+            )}
+
+            {/* Payment Details Modal */}
+            {showDetails && selectedPayment && (
+                <PaymentDetailsModal
+                    payment={selectedPayment}
+                    onClose={() => {
+                        setShowDetails(false)
+                        setSelectedPayment(null)
+                    }}
+                />
+            )}
         </div>
     )
 }

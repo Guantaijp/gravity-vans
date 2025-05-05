@@ -16,8 +16,10 @@ export default function RecentBookingsTable({
                                             }: RecentBookingsTableProps) {
     // Helper function to display vehicle or "Out Sourced" if unknown
     const displayVehicle = (vehicle: string | null | undefined) => {
-        return vehicle?.trim() ? vehicle : "Out Sourced";
+        const normalized = vehicle?.trim().toLowerCase();
+        return !normalized || normalized === "unknown" ? "Out Sourced" : vehicle;
     };
+
 
     if (isReturns) {
         return (

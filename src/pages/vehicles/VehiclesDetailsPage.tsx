@@ -236,7 +236,7 @@ export default function VehicleDetailsPage() {
                         <Tabs defaultValue="bookings">
                             <TabsList className="grid w-full grid-cols-2">
                                 <TabsTrigger value="bookings">Booking History</TabsTrigger>
-                                <TabsTrigger value="maintenance">Maintenance History</TabsTrigger>
+                                {/*<TabsTrigger value="maintenance">Maintenance History</TabsTrigger>*/}
                             </TabsList>
                             <TabsContent value="bookings">
                                 <Card>

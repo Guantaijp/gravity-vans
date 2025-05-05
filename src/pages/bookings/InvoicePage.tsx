@@ -10,6 +10,118 @@ import BookingService, { type Booking } from "../../services/booking-service"
 import VehicleService from "../../services/vehicle-service"
 import { toast } from "sonner"
 
+// Compact print styles to fit everything on one page
+const printStyles = `
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+  
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background-color: white !important;
+    font-size: 10px !important; /* Reduce base font size */
+  }
+  
+  .print-hidden {
+    display: none !important;
+  }
+
+  button, .print-hidden {
+    display: none !important;
+  }
+  
+  /* Compact layout for printing */
+  .card-content {
+    padding: 10px !important;
+  }
+  
+  /* Reduce spacing between sections */
+  .invoice-section {
+    margin-bottom: 8px !important;
+  }
+  
+  /* Ensure the entire invoice is printed */
+  .invoice-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Make text darker for better printing */
+  body, p, div, table {
+    color: black !important;
+  }
+
+  /* Compact table */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 10px !important;
+  }
+  
+  /* Reduce cell padding */
+  th, td {
+    padding: 4px !important;
+  }
+
+  /* Reduce heading sizes */
+  h1 {
+    font-size: 16px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  h2 {
+    font-size: 14px !important;
+    margin-bottom: 4px !important;
+  }
+  
+  h3 {
+    font-size: 11px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  /* Reduce spacing between elements */
+  .flex-col > * {
+    margin-bottom: 8px !important;
+  }
+  
+  /* Reduce gap in grid layouts */
+  .gap-6 {
+    gap: 8px !important;
+  }
+  
+  .gap-8 {
+    gap: 10px !important;
+  }
+  
+  /* Compact spacing for text */
+  p {
+    margin: 0 !important;
+    line-height: 1.3 !important;
+  }
+  
+  /* Reduce padding in sections */
+  .p-8 {
+    padding: 10px !important;
+  }
+  
+  /* Compact address info */
+  .company-info p, .customer-info p {
+    line-height: 1.2 !important;
+  }
+  
+  /* Force single page */
+  .invoice-wrapper {
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+}
+`
+
 export default function InvoicePage() {
     const { id } = useParams<{ id: string }>()
     const [booking, setBooking] = useState<Booking | null>(null)
@@ -118,9 +230,7 @@ export default function InvoicePage() {
         const total = subtotal + tax
 
         // Calculate balance
-        const balance = booking.calculatedBalance
-            || booking.balance
-            || total - (booking.deposit ?? 0);
+        const balance = booking.calculatedBalance || booking.balance || total - (booking.deposit ?? 0)
 
         setInvoiceItems(items)
         setInvoiceTotals({
@@ -128,7 +238,7 @@ export default function InvoicePage() {
             tax: Number(tax),
             total: Number(total),
             balance: Number(balance),
-        });
+        })
     }
 
     const handleSendToWhatsApp = async () => {
@@ -148,18 +258,11 @@ Vehicle: ${vehicleName}
 Period: ${new Date(booking!.startDate).toLocaleDateString()} to ${new Date(booking!.endDate).toLocaleDateString()}
 
 *TOTAL:* KES ${booking!.totalAmount.toLocaleString()}
-*PAID:* KES ${booking?.deposit?.toLocaleString() ?? '0'}
-{booking ? (
-  <div>
-    <strong>BALANCE DUE:</strong> KES {(
-      booking.calculatedBalance || 
-      booking.balance || 
-      (booking.totalAmount - booking.deposit)
-    ).toLocaleString()}
-  </div>
-) : (
-  <div>No booking information available.</div>
-)}
+*PAID:* KES ${booking?.deposit?.toLocaleString() ?? "0"}
+*BALANCE DUE:* KES ${(
+                booking?.calculatedBalance || booking?.balance || booking!.totalAmount - (booking?.deposit ?? 0)
+            ).toLocaleString()}
+
 Thank you for choosing Gravity Vans!
       `.trim()
 
@@ -167,7 +270,7 @@ Thank you for choosing Gravity Vans!
             const encodedMessage = encodeURIComponent(invoiceDetails)
 
             // Open WhatsApp with the pre-filled message
-            window.open(`https://wa.me/254795070535?text=${encodedMessage}`, "_blank")
+            window.open(`https://wa.me/254725626434?text=${encodedMessage}`, "_blank")
 
             toast.success("WhatsApp opened with invoice details")
         } catch (err) {
@@ -179,7 +282,23 @@ Thank you for choosing Gravity Vans!
     }
 
     const handlePrint = () => {
+        // Add temporary print styles to document
+        const style = document.createElement("style")
+        style.innerHTML = printStyles
+        style.id = "temp-print-styles"
+        document.head.appendChild(style)
+
+        // Force layout calculation
+        document.body.offsetHeight
+
+        // Print the document
         window.print()
+
+        // Remove temporary styles after printing
+        setTimeout(() => {
+            const tempStyle = document.getElementById("temp-print-styles")
+            if (tempStyle) tempStyle.remove()
+        }, 1000)
     }
 
     if (loading) {
@@ -202,7 +321,9 @@ Thank you for choosing Gravity Vans!
     }
 
     const customerName =
-        typeof booking.customer === "string" ? booking.customer : booking.customer?.fullName || booking.customer?.fullName || ""
+        typeof booking.customer === "string"
+            ? booking.customer
+            : booking.customer?.fullName || booking.customer?.fullName || ""
 
     const customerEmail = typeof booking.customer === "string" ? "" : booking.customer?.email || ""
 
@@ -225,9 +346,21 @@ Thank you for choosing Gravity Vans!
     const currentDate = new Date().toLocaleDateString()
     const dueDate = new Date(booking.startDate).toLocaleDateString()
 
+    // Ensure deposit is a number or default to 0
+    const deposit = booking.deposit ? Number(booking.deposit) : 0
+
+    // Calculate balance properly
+    const balanceDue =
+        booking.calculatedBalance !== undefined
+            ? Number(booking.calculatedBalance)
+            : booking.balance !== undefined
+                ? Number(booking.balance)
+                : booking.totalAmount - deposit
+    console.log(balanceDue)
+
     return (
         <div className="flex flex-col">
-            <header className="border-b print:hidden">
+            <header className="border-b print-hidden">
                 <div className="container flex h-16 items-center px-4 sm:px-6 lg:px-8">
                     <Link to={`/bookings/${id}`} className="mr-4">
                         <Button variant="ghost" size="icon">
@@ -258,28 +391,30 @@ Thank you for choosing Gravity Vans!
             </header>
             <main className="flex-1 p-4 sm:p-6 lg:p-8 print:p-0">
                 <div className="mx-auto max-w-4xl">
-                    <Card className="border-0 shadow-lg print:shadow-none">
-                        <CardContent className="p-8">
-                            <div className="flex flex-col gap-8">
-                                {/* Header */}
-                                <div className="flex flex-col md:flex-row justify-between gap-6">
-                                    <div>
-                                        <div className="flex items-center mb-4">
+                    <Card className="border-0 shadow-lg print:shadow-none invoice-container">
+                        <CardContent className="p-8 card-content">
+                            <div className="flex flex-col gap-4 invoice-wrapper">
+                                {/* Header - More compact layout */}
+                                <div className="grid grid-cols-2 gap-4 invoice-section">
+                                    <div className="company-info">
+                                        <div className="flex items-center mb-2">
                                             <h1 className="text-2xl font-bold">
                                                 <span className="text-primary">Gravity</span> Vans
                                             </h1>
                                         </div>
-                                        <div className="text-sm text-muted-foreground">
-                                            <p>Gravity Vans for Hire Ltd</p>
-                                            <p>Mombasa Road, Nairobi</p>
-                                            <p>Kenya</p>
-                                            <p>info@gravityvans.co.ke</p>
-                                            <p>+254 700 123 456</p>
+                                        <div className="text-xs text-muted-foreground">
+                                            <p>GRAVITY VAN HIRE</p>
+                                            <p>Total Energies Ruaraka, Thika Rd.</p>
+                                            <p>Opposite Safari Park Hotel, Office Room F-7</p>
+                                            <p>Nairobi, Kenya</p>
+                                            <p>info@gravityvansforhire.co.ke</p>
+                                            <p>www.gravityvansforhire.co.ke</p>
+                                            <p>+254725626434 / +25472395123</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <h2 className="text-2xl font-bold text-primary mb-2">INVOICE</h2>
-                                        <div className="text-sm">
+                                        <h2 className="text-xl font-bold text-primary mb-1">INVOICE</h2>
+                                        <div className="text-xs">
                                             <p className="font-medium">Invoice Number: {invoiceNumber}</p>
                                             <p>Booking ID: {booking._id}</p>
                                             <p>Date: {currentDate}</p>
@@ -288,11 +423,11 @@ Thank you for choosing Gravity Vans!
                                     </div>
                                 </div>
 
-                                {/* Customer & Booking Info */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">BILL TO:</h3>
-                                        <div className="text-sm">
+                                {/* Customer & Booking Info - Side by side, more compact */}
+                                <div className="grid grid-cols-2 gap-4 invoice-section">
+                                    <div className="customer-info">
+                                        <h3 className="text-xs font-medium mb-1 text-muted-foreground">BILL TO:</h3>
+                                        <div className="text-xs">
                                             <p className="font-medium">{customerName}</p>
                                             <p>{customerAddress}</p>
                                             {customerPhone && <p>{customerPhone}</p>}
@@ -300,8 +435,8 @@ Thank you for choosing Gravity Vans!
                                         </div>
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2 text-muted-foreground">BOOKING DETAILS:</h3>
-                                        <div className="text-sm">
+                                        <h3 className="text-xs font-medium mb-1 text-muted-foreground">BOOKING DETAILS:</h3>
+                                        <div className="text-xs">
                                             <p>
                                                 <span className="font-medium">Vehicle:</span> {vehicleName}
                                                 {vehicleCapacity && ` (${vehicleCapacity})`}
@@ -320,79 +455,72 @@ Thank you for choosing Gravity Vans!
                                     </div>
                                 </div>
 
-                                {/* Invoice Items */}
-                                <div>
+                                {/* Invoice Items - Compact table */}
+                                <div className="invoice-section">
                                     <Table>
                                         <TableHeader>
                                             <TableRow className="bg-muted">
-                                                <TableHead>Description</TableHead>
-                                                <TableHead className="text-right">Days</TableHead>
+                                                <TableHead className="py-1 text-xs">Description</TableHead>
+                                                <TableHead className="text-right py-1 text-xs">Days</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {invoiceItems.map((item, index) => (
                                                 <TableRow key={index}>
-                                                    <TableCell>{item.description}</TableCell>
-                                                    <TableCell className="text-right">{item.days}</TableCell>
+                                                    <TableCell className="py-1 text-xs">{item.description}</TableCell>
+                                                    <TableCell className="text-right py-1 text-xs">{item.days}</TableCell>
                                                 </TableRow>
                                             ))}
                                         </TableBody>
                                     </Table>
                                 </div>
 
-                                {/* Totals */}
-                                <div className="flex justify-end">
+                                {/* Totals - More compact */}
+                                <div className="flex justify-end invoice-section">
                                     <div className="w-full md:w-1/2">
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between text-sm">
+                                        <div className="space-y-1">
+                                            <div className="flex justify-between text-xs">
                                                 <span className="text-muted-foreground">Subtotal:</span>
                                                 <span>KES {booking.totalAmount.toLocaleString()}</span>
                                             </div>
                                             {invoiceTotals.tax > 0 && (
-                                                <div className="flex justify-between text-sm">
+                                                <div className="flex justify-between text-xs">
                                                     <span className="text-muted-foreground">Tax:</span>
                                                     <span>KES {invoiceTotals.tax.toLocaleString()}</span>
                                                 </div>
                                             )}
-                                            <div className="flex justify-between font-bold pt-2 border-t">
+                                            <div className="flex justify-between font-bold pt-1 border-t text-xs">
                                                 <span>Total:</span>
                                                 <span>KES {booking.totalAmount.toLocaleString()}</span>
                                             </div>
-                                            {/*<div className="flex justify-between text-sm pt-2">*/}
+                                            {/*<div className="flex justify-between text-xs pt-1">*/}
                                             {/*    <span className="text-muted-foreground">Amount Paid:</span>*/}
-                                            {/*    <span>KES {booking.deposit.toLocaleString()}</span>*/}
+                                            {/*    <span>KES {deposit.toLocaleString()}</span>*/}
                                             {/*</div>*/}
-                                            <div className="flex justify-between font-bold text-primary">
-                                                <span>Balance Due:</span>
-                                                <span>
-  KES{" "}
-                                                    {(
-                                                        booking.calculatedBalance ??
-                                                        booking.balance ??
-                                                        (booking.totalAmount - (booking.deposit ?? 0))
-                                                    ).toLocaleString()}
-</span>
-
-                                            </div>
+                                            {/*<div className="flex justify-between font-bold text-primary text-xs">*/}
+                                            {/*    <span>Balance Due:</span>*/}
+                                            {/*    <span>KES {balanceDue.toLocaleString()}</span>*/}
+                                            {/*</div>*/}
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Payment Info & Terms */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                {/* Payment Info & Terms - More compact, 3 columns */}
+                                <div className="grid grid-cols-3 gap-2 pt-2 border-t invoice-section">
                                     <div>
-                                        <h3 className="text-sm font-medium mb-2">PAYMENT INFORMATION</h3>
-                                        <div className="text-sm text-muted-foreground">
-                                            <p>Bank: Kenya Commercial Bank</p>
-                                            <p>Account Name: Gravity Vans for Hire Ltd</p>
-                                            <p>Account Number: 1234567890</p>
-                                            <p>M-Pesa Paybill: 123456</p>
-                                            <p>Account Number: BOOKING-{booking._id}</p>
+                                        <h3 className="text-xs font-medium mb-1">PAYMENT INFORMATION</h3>
+                                        <div className="text-xs text-muted-foreground payment-info">
+                                            <p>Bank: Co-operative Bank</p>
+                                            <p>Account: GRAVITY VAN HIRE</p>
+                                            <p>Acc No: 01100762714001</p>
+                                            <p>M-Pesa Paybill: 400200</p>
+                                            <p>Account No: 21597</p>
+                                            <p>M-Pesa Till: 8345646</p>
                                         </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-sm font-medium mb-2">TERMS & CONDITIONS</h3>
-                                        <div className="text-sm text-muted-foreground">
+                                    <div className="col-span-2">
+                                        <h3 className="text-xs font-medium mb-1">TERMS & CONDITIONS</h3>
+                                        <div className="text-xs text-muted-foreground terms-info">
                                             <p>1. Full payment is due before vehicle pickup.</p>
                                             <p>2. Cancellation within 48 hours of booking incurs a 50% fee.</p>
                                             <p>3. The vehicle must be returned in the same condition.</p>
@@ -401,11 +529,11 @@ Thank you for choosing Gravity Vans!
                                     </div>
                                 </div>
 
-                                {/* Thank You Note */}
-                                <div className="text-center pt-4 border-t">
-                                    <p className="font-medium">Thank you for choosing Gravity Vans for Hire!</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        For any inquiries, please contact us at info@gravityvans.co.ke
+                                {/* Thank You Note - More compact */}
+                                <div className="text-center pt-2 border-t invoice-section">
+                                    <p className="font-medium text-xs">Thank you for choosing Gravity Vans for Hire!</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        For inquiries, contact us at info@gravityvansforhire.co.ke
                                     </p>
                                 </div>
                             </div>
