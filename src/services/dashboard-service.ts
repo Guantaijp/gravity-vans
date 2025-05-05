@@ -67,7 +67,7 @@ const dashboardService = {
                 queryString = queryParams.toString() ? `?${queryParams.toString()}` : ""
             }
 
-            const response = await api.get<DashboardData>(`/dashboard${queryString}`)
+            const response = await api.get<DashboardData>(`/dashboard/dash${queryString}`)
             return response.data
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error)
