@@ -10,6 +10,8 @@ interface PaymentReceiptProps {
     onClose: () => void
 }
 
+const logoUrl = "../../../public/Gravity-logo-400x400.png"
+
 export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps) {
     const printReceipt = () => {
         const printWindow = window.open("", "_blank")
@@ -90,8 +92,7 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
   <body>
     <div class="receipt">
       <div class="header">
-        <img src="../../../public/Gravity-logo-400x400.png" alt="Company Logo" class="logo">
-        <div class="company-info">
+  <img src="${logoUrl}" alt="Company Logo" class="logo">        <div class="company-info">
           Total Energies Ruaraka, Thika Rd.<br>
           Opposite Safari Park Hotel, Office Room F-7<br>
           Nairobi, Kenya<br>
