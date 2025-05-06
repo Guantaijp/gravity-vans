@@ -9,6 +9,7 @@ import { ChevronLeft, Printer, Loader2, MessageSquare } from "lucide-react"
 import BookingService, { type Booking } from "../../services/booking-service"
 import VehicleService from "../../services/vehicle-service"
 import { toast } from "sonner"
+import Logo from "../../../public/Gravity-logo-400x400.png"
 
 // Compact print styles to fit everything on one page
 const printStyles = `
@@ -122,7 +123,19 @@ const printStyles = `
 }
 `
 
+
+
 export default function InvoicePage() {
+    // Add custom color theme
+    useEffect(() => {
+        document.documentElement.style.setProperty("--primary", "#FF0000")
+        document.documentElement.style.setProperty("--primary-foreground", "#FFFFFF")
+
+        return () => {
+            document.documentElement.style.removeProperty("--primary")
+            document.documentElement.style.removeProperty("--primary-foreground")
+        }
+    }, [])
     const { id } = useParams<{ id: string }>()
     const [booking, setBooking] = useState<Booking | null>(null)
     const [loading, setLoading] = useState(true)
@@ -398,12 +411,9 @@ Thank you for choosing Gravity Vans!
                                 <div className="grid grid-cols-2 gap-4 invoice-section">
                                     <div className="company-info">
                                         <div className="flex items-center mb-2">
-                                            <h1 className="text-2xl font-bold">
-                                                <span className="text-primary">Gravity</span> Vans
-                                            </h1>
+                                            <img src={Logo} alt="Company Logo" className="h-32 w-auto" />
                                         </div>
                                         <div className="text-xs text-muted-foreground">
-                                            <p>GRAVITY VAN HIRE</p>
                                             <p>Total Energies Ruaraka, Thika Rd.</p>
                                             <p>Opposite Safari Park Hotel, Office Room F-7</p>
                                             <p>Nairobi, Kenya</p>
@@ -413,7 +423,7 @@ Thank you for choosing Gravity Vans!
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <h2 className="text-xl font-bold text-primary mb-1">INVOICE</h2>
+                                        <h2 className="text-xl font-bold text-red-600 mb-1">INVOICE</h2>
                                         <div className="text-xs">
                                             <p className="font-medium">Invoice Number: {invoiceNumber}</p>
                                             <p>Booking ID: {booking._id}</p>
@@ -497,10 +507,10 @@ Thank you for choosing Gravity Vans!
                                             {/*    <span className="text-muted-foreground">Amount Paid:</span>*/}
                                             {/*    <span>KES {deposit.toLocaleString()}</span>*/}
                                             {/*</div>*/}
-                                            {/*<div className="flex justify-between font-bold text-primary text-xs">*/}
-                                            {/*    <span>Balance Due:</span>*/}
-                                            {/*    <span>KES {balanceDue.toLocaleString()}</span>*/}
-                                            {/*</div>*/}
+                                            <div className="flex justify-between font-bold text-red-600 text-xs">
+                                                <span>Balance Due:</span>
+                                                <span>KES {balanceDue.toLocaleString()}</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

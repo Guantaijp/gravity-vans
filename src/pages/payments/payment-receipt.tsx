@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "../../components/ui/button"
+// import Logo from "../../../public/Gravity-logo-400x400.png"
 
 import type { Payment } from "../../services/payment-service.ts"
 
@@ -15,133 +16,134 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
         if (!printWindow) return
 
         const receiptContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Payment Receipt - Gravity Vans</title>
-        <style>
-          body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            max-width: 800px;
-            margin: 0 auto;
-          }
-          .receipt {
-            border: 1px solid #ddd;
-            padding: 20px;
-            margin-bottom: 20px;
-          }
-          .header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-          }
-          .logo {
-            font-size: 24px;
-            font-weight: bold;
-          }
-          .company-info {
-            margin-top: 10px;
-            font-size: 14px;
-            line-height: 1.4;
-          }
-          .receipt-id {
-            margin-top: 15px;
-            color: #666;
-          }
-          .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-          }
-          .label {
-            font-weight: bold;
-            width: 150px;
-          }
-          .value {
-            flex: 1;
-          }
-          .amount {
-            font-size: 18px;
-            font-weight: bold;
-            text-align: right;
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            padding-top: 10px;
-          }
-          .footer {
-            text-align: center;
-            margin-top: 30px;
-            font-size: 12px;
-            color: #666;
-          }
-          @media print {
-            .no-print {
-              display: none;
-            }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="receipt">
-          <div class="header">
-            <div class="logo">GRAVITY VANS</div>
-            <div class="company-info">
-              GRAVITY VAN HIRE<br>
-              Total Energies Ruaraka, Thika Rd.<br>
-              Opposite Safari Park Hotel, Office Room F-7<br>
-              Nairobi, Kenya<br>
-              info@gravityvansforhire.co.ke<br>
-              www.gravityvansforhire.co.ke<br>
-              +254725626434 / +25472395123
-            </div>
-            <div class="receipt-id">Receipt #${payment._id}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="label">Payment Date:</div>
-            <div class="value">${new Date(payment.paymentDate || "").toLocaleDateString()}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="label">Booking ID:</div>
-            <div class="value">${typeof payment.booking === "object" ? payment.booking?._id : payment.booking}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="label">Payment Method:</div>
-            <div class="value">${payment.method}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="label">Reference:</div>
-            <div class="value">${payment.reference || "N/A"}</div>
-          </div>
-          
-          <div class="info-row">
-            <div class="label">Status:</div>
-            <div class="value">${payment.status}</div>
-          </div>
-          
-          <div class="amount">
-            Amount Paid: KES ${payment.amount.toLocaleString()}
-          </div>
-          
-          <div class="footer">
-            Thank you for choosing Gravity Vans!<br>
-            For any inquiries, please contact our support team.
-          </div>
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Payment Receipt</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      .receipt {
+        border: 1px solid #ddd;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+      .header {
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #000;
+        padding-bottom: 10px;
+      }
+      .logo {
+        max-width: 150px;
+        margin: 0 auto;
+        display: block;
+      }
+      .company-info {
+        margin-top: 10px;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .receipt-id {
+        margin-top: 15px;
+        color: #666;
+      }
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+      }
+      .label {
+        font-weight: bold;
+        width: 150px;
+      }
+      .value {
+        flex: 1;
+      }
+      .amount {
+        font-size: 18px;
+        font-weight: bold;
+        text-align: right;
+        margin-top: 20px;
+        border-top: 1px solid #ddd;
+        padding-top: 10px;
+        color: #FF0000;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        font-size: 12px;
+        color: #666;
+      }
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="receipt">
+      <div class="header">
+        <img src="../../../public/Gravity-logo-400x400.png" alt="Company Logo" class="logo">
+        <div class="company-info">
+          Total Energies Ruaraka, Thika Rd.<br>
+          Opposite Safari Park Hotel, Office Room F-7<br>
+          Nairobi, Kenya<br>
+          info@gravityvansforhire.co.ke<br>
+          www.gravityvansforhire.co.ke<br>
+          +254725626434 / +25472395123
         </div>
-        
-        <div class="no-print" style="text-align: center; margin-top: 20px;">
-          <button onclick="window.print()">Print Receipt</button>
-          <button onclick="window.close()">Close</button>
-        </div>
-      </body>
-      </html>
-    `
+        <div class="receipt-id">Receipt #${payment._id}</div>
+      </div>
+      
+      <div class="info-row">
+        <div class="label">Payment Date:</div>
+        <div class="value">${new Date(payment.paymentDate || "").toLocaleDateString()}</div>
+      </div>
+      
+      <div class="info-row">
+        <div class="label">Booking ID:</div>
+        <div class="value">${typeof payment.booking === "object" ? payment.booking?._id : payment.booking}</div>
+      </div>
+      
+      <div class="info-row">
+        <div class="label">Payment Method:</div>
+        <div class="value">${payment.method}</div>
+      </div>
+      
+      <div class="info-row">
+        <div class="label">Reference:</div>
+        <div class="value">${payment.reference || "N/A"}</div>
+      </div>
+      
+      <div class="info-row">
+        <div class="label">Status:</div>
+        <div class="value">${payment.status}</div>
+      </div>
+      
+      <div class="amount">
+        Amount Paid: KES ${payment.amount.toLocaleString()}
+      </div>
+      
+      <div class="footer">
+        Thank you for choosing our services!<br>
+        For any inquiries, please contact our support team.
+      </div>
+    </div>
+    
+    <div class="no-print" style="text-align: center; margin-top: 20px;">
+      <button onclick="window.print()" style="background-color: #FF0000; color: white; border: none; padding: 8px 16px; margin-right: 8px; cursor: pointer; border-radius: 4px;">Print Receipt</button>
+      <button onclick="window.close()" style="background-color: #000000; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px;">Close</button>
+    </div>
+  </body>
+  </html>
+`
 
         printWindow.document.open()
         printWindow.document.write(receiptContent)
