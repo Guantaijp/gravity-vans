@@ -10,12 +10,13 @@ interface PaymentReceiptProps {
     onClose: () => void
 }
 
-const logoUrl = "../../../public/Gravity-logo-400x400.png"
+// const logoUrl = "../../../public/Gravity-logo-400x400.png"
 
 export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps) {
     const printReceipt = () => {
         const printWindow = window.open("", "_blank")
         if (!printWindow) return
+        const logoUrl = `${window?.location?.origin || "https://gravity-vans.vercel.app"}/Gravity-logo-400x400.png`
 
         const receiptContent = `
   <!DOCTYPE html>
