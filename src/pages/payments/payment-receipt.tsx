@@ -1,22 +1,23 @@
 "use client"
 
 import { Button } from "../../components/ui/button"
-// import Logo from "../../../public/Gravity-logo-400x400.png"
+// import Image from "next/image"
+import Logo from "../../../public/Gravity-logo-400x400.png"
 
-import type { Payment } from "../../services/payment-service.ts"
+import type { Payment } from "../../services/payment-service"
 
 interface PaymentReceiptProps {
     payment: Payment
     onClose: () => void
 }
 
-// const logoUrl = "../../../public/Gravity-logo-400x400.png"
-
 export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps) {
     const printReceipt = () => {
         const printWindow = window.open("", "_blank")
         if (!printWindow) return
-        const logoUrl = `${window?.location?.origin || "https://gravity-vans.vercel.app"}/Gravity-logo-400x400.png`
+
+        // Use absolute URL for the logo in the printed receipt
+        const logoUrl = `${window?.location?.origin || ""}/Gravity-logo-400x400.png`
 
         const receiptContent = `
   <!DOCTYPE html>
@@ -93,7 +94,8 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
   <body>
     <div class="receipt">
       <div class="header">
-  <img src="${logoUrl}" alt="Company Logo" class="logo">        <div class="company-info">
+        <img src="${logoUrl}" alt="Gravity Vans Logo" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgZmlsbD0iI2YxZjFmMSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIGZpbGw9IiM1NTUiPkdyYXZpdHkgVmFuczwvdGV4dD48L3N2Zz4=';">
+        <div class="company-info">
           Total Energies Ruaraka, Thika Rd.<br>
           Opposite Safari Park Hotel, Office Room F-7<br>
           Nairobi, Kenya<br>
@@ -155,7 +157,23 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-                <h2 className="text-xl font-bold mb-4">Gravity Vans - Payment Receipt</h2>
+                <div className="flex flex-col items-center mb-4">
+                    <div className="relative w-24 h-24 mb-2">
+                        <img
+                            src={Logo}
+                            alt="Gravity Vans Logo"
+                            // fill
+                            className="object-contain"
+                            onError={(e) => {
+                                // Fallback if image fails to load
+                                const target = e.target as HTMLImageElement
+                                target.onerror = null
+                                target.src = "/placeholder.svg?height=96&width=96"
+                            }}
+                        />
+                    </div>
+                    <h2 className="text-xl font-bold">Payment Receipt</h2>
+                </div>
 
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-2">
@@ -166,7 +184,7 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
                         <div className="text-sm">{new Date(payment.paymentDate || "").toLocaleDateString()}</div>
 
                         <div className="text-sm font-medium">Amount:</div>
-                        <div className="text-sm font-bold">KES {payment.amount.toLocaleString()}</div>
+                        <div className="text-sm font-bold text-red-600">KES {payment.amount.toLocaleString()}</div>
 
                         <div className="text-sm font-medium">Method:</div>
                         <div className="text-sm">{payment.method}</div>
@@ -183,7 +201,9 @@ export default function PaymentReceipt({ payment, onClose }: PaymentReceiptProps
                     <Button variant="outline" onClick={onClose}>
                         Close
                     </Button>
-                    <Button onClick={printReceipt}>Print Receipt</Button>
+                    <Button onClick={printReceipt} className="bg-red-600 hover:bg-red-700">
+                        Print Receipt
+                    </Button>
                 </div>
             </div>
         </div>
