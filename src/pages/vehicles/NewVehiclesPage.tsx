@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "../../components/ui/input"
 import { Label } from "../../components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { ChevronLeft, Upload, Loader2 } from "lucide-react"
+import { ChevronLeft, Upload, Loader2 } from 'lucide-react'
 import { toast } from "sonner"
 import type { VehicleInput } from "../../services/vehicle-service.ts"
 
@@ -18,7 +18,7 @@ export default function NewVehiclePage() {
     const [imagePreview, setImagePreview] = useState<string | null>(null)
     const [form, setForm] = useState<
         VehicleInput & {
-        ownershipType: string
+        ownership: string
         roadServiceLicense: string
         speedGovernor: string
         speedGovernorExpiry: string
@@ -43,7 +43,7 @@ export default function NewVehiclePage() {
         features: [],
         imageUrl: "",
         status: "available",
-        ownershipType: "owned",
+        ownership: "owned", // Changed from ownershipType to ownership to match backend
         roadServiceLicense: "",
         speedGovernor: "",
         speedGovernorExpiry: "",
@@ -93,6 +93,12 @@ export default function NewVehiclePage() {
             return
         }
 
+        // Check for required owner fields if ownership is outsourced
+        if (form.ownership === "outsourced" && (!form.ownerName || !form.ownerContact)) {
+            toast.error("Please fill in owner name and contact details for outsourced vehicles.")
+            return
+        }
+
         setIsLoading(true)
 
         try {
@@ -124,12 +130,11 @@ export default function NewVehiclePage() {
                 description: form.description || "",
                 features: form.features || [],
                 mileage: 0,
-                notes: ""
-            }
-
-            // If it's outsourced, add owner details to the description
-            if (form.ownershipType === "outsourced" && form.ownerName && form.ownerContact) {
-                vehicleData.description = `Owner: ${form.ownerName}, Contact: ${form.ownerContact}\n${vehicleData.description}`
+                notes: "",
+                // Add ownership fields directly to the vehicle data
+                ownership: form.ownership,
+                ownerName: form.ownership === "outsourced" ? form.ownerName : "",
+                ownerContact: form.ownership === "outsourced" ? form.ownerContact : ""
             }
 
             // Add each field individually to FormData
@@ -358,14 +363,14 @@ export default function NewVehiclePage() {
                                 <div className="space-y-4 pt-4 border-t">
                                     <h3 className="text-lg font-medium">Ownership Information</h3>
                                     <div className="space-y-2">
-                                        <Label htmlFor="ownershipType">
+                                        <Label htmlFor="ownership">
                                             Ownership Type <span className="text-red-500">*</span>
                                         </Label>
                                         <Select
-                                            value={form.ownershipType}
-                                            onValueChange={(value) => setForm({ ...form, ownershipType: value })}
+                                            value={form.ownership}
+                                            onValueChange={(value) => setForm({ ...form, ownership: value })}
                                         >
-                                            <SelectTrigger id="ownershipType">
+                                            <SelectTrigger id="ownership">
                                                 <SelectValue placeholder="Select ownership" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -375,7 +380,7 @@ export default function NewVehiclePage() {
                                         </Select>
                                     </div>
 
-                                    {form.ownershipType === "outsourced" && (
+                                    {form.ownership === "outsourced" && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <Label htmlFor="ownerName">
@@ -387,7 +392,7 @@ export default function NewVehiclePage() {
                                                     value={form.ownerName}
                                                     onChange={handleChange}
                                                     placeholder="Owner's full name"
-                                                    required={form.ownershipType === "outsourced"}
+                                                    required={form.ownership === "outsourced"}
                                                 />
                                             </div>
                                             <div className="space-y-2">
@@ -400,7 +405,7 @@ export default function NewVehiclePage() {
                                                     value={form.ownerContact}
                                                     onChange={handleChange}
                                                     placeholder="Owner's phone number"
-                                                    required={form.ownershipType === "outsourced"}
+                                                    required={form.ownership === "outsourced"}
                                                 />
                                             </div>
                                         </div>

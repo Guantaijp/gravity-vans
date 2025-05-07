@@ -15,7 +15,6 @@ import { format } from "date-fns"
 import { CalendarIcon, ChevronLeft, Plus, Trash2 } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { Input } from "../../components/ui/input"
-import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group"
 import BookingService, { type BookingInput } from "../../services/booking-service"
 import CustomerService, { type Customer } from "../../services/customer-service"
 import VehicleService, { type Vehicle } from "../../services/vehicle-service"
@@ -54,13 +53,10 @@ export default function NewBookingPage() {
     const [status, setStatus] = useState<"Pending" | "Active" | "Completed" | "Cancelled">("Pending")
 
     // Outsourced vehicle state
-    const [vehicleSource, setVehicleSource] = useState<"company" | "outsourced">("company")
-    const [outsourcedOwnerName, setOutsourcedOwnerName] = useState<string>("")
-    const [outsourcedOwnerPhone, setOutsourcedOwnerPhone] = useState<string>("")
 
     // Data lists
     const [customers, setCustomers] = useState<Customer[]>([])
-    const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+    const [vehicles, setVehicles] = useState<Vehicle[]>([])
     console.log(vehicles)
     const [drivers, setDrivers] = useState<Driver[]>([])
     console.log(drivers)
@@ -76,8 +72,8 @@ export default function NewBookingPage() {
                 setCustomers(customersData)
 
                 // Fetch all vehicles
-                const vehiclesData = await VehicleService.getAll(); // <-- Correct function call
-                setVehicles(vehiclesData);
+                const vehiclesData = await VehicleService.getAll() // <-- Correct function call
+                setVehicles(vehiclesData)
 
                 // Fetch all drivers
                 const driversData = await DriverService.getAll()
@@ -137,13 +133,8 @@ export default function NewBookingPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        if (!startDate || !endDate || (vehicleSource === "company" && !selectedVehicle) || !selectedCustomer) {
+        if (!startDate || !endDate || !selectedVehicle || !selectedCustomer) {
             toast.error("Please fill in all required fields")
-            return
-        }
-
-        if (vehicleSource === "outsourced" && (!outsourcedOwnerName || !outsourcedOwnerPhone)) {
-            toast.error("Please provide outsourced vehicle owner details")
             return
         }
 
@@ -169,11 +160,7 @@ export default function NewBookingPage() {
                 }))
 
             // Add outsourced vehicle info to notes if applicable
-            let bookingNotes = notes
-            if (vehicleSource === "outsourced") {
-                const outsourcedInfo = `- Outsourced Vehicle\n- Owner: ${outsourcedOwnerName}\n- Contact: ${outsourcedOwnerPhone}\n\n`
-                bookingNotes = outsourcedInfo + bookingNotes
-            }
+            const bookingNotes = notes
 
             // Calculate company revenue
             const companyRevenue = totalAmount - ownerCommission - referrerCommission
@@ -182,7 +169,7 @@ export default function NewBookingPage() {
             const bookingData: BookingInput = {
                 customer: selectedCustomer,
                 // For outsourced vehicles, use null instead of empty string
-                vehicle: vehicleSource === "company" ? selectedVehicle : null,
+                vehicle: selectedVehicle,
                 driver: selectedDriver && selectedDriver !== "no-driver" ? selectedDriver : undefined,
                 // Use the current user's ID from auth context
                 bookedBy: user.id,
@@ -201,7 +188,7 @@ export default function NewBookingPage() {
                             ? {
                                 amount: ownerCommission,
                                 paid: false,
-                                ownerName: outsourcedOwnerName || "Vehicle Owner",
+                                ownerName: "Vehicle Owner",
                             }
                             : undefined,
                     referrerPayout:
@@ -249,6 +236,9 @@ export default function NewBookingPage() {
     // Calculate total services cost
     const totalServicesCost = additionalServices.reduce((sum, service) => sum + (service.cost || 0), 0)
 
+    // Replace with this code to get the selected vehicle data
+    const selectedVehicleData = selectedVehicle ? availableVehicles.find((v) => v._id === selectedVehicle) : null
+    const vehicleOwnership = selectedVehicleData?.ownership || "owned"
 
     return (
         <div className="flex flex-col">
@@ -343,86 +333,40 @@ export default function NewBookingPage() {
                                     </div>
                                 </div>
 
-                                {/* Vehicle Source Selection */}
-                                <div className="space-y-3">
-                                    <Label>Vehicle Source *</Label>
-                                    <RadioGroup
-                                        value={vehicleSource}
-                                        onValueChange={(value: "company" | "outsourced") => setVehicleSource(value)}
-                                        className="flex flex-col space-y-1"
-                                    >
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="company" id="company" />
-                                            <Label htmlFor="company">Company Vehicle</Label>
-                                        </div>
-                                        <div className="flex items-center space-x-2">
-                                            <RadioGroupItem value="outsourced" id="outsourced" />
-                                            <Label htmlFor="outsourced">Outsourced Vehicle</Label>
-                                        </div>
-                                    </RadioGroup>
-                                </div>
-
-                                {/* Company Vehicle Selection */}
-                                {vehicleSource === "company" && (
-                                    <div className="space-y-2">
-                                        <Label htmlFor="vehicle">Select Vehicle *</Label>
-                                        <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
-                                            <SelectTrigger id="vehicle">
-                                                <SelectValue placeholder="Select vehicle" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {startDate && endDate ? (
-                                                    availableVehicles.length > 0 ? (
-                                                        availableVehicles.map((vehicle) => (
-                                                            <SelectItem key={vehicle._id} value={vehicle._id}>
-                                                                {vehicle.name || `${vehicle.make} ${vehicle.model}`} - {vehicle.licensePlate} (
-                                                                {vehicle.capacity} seater)
-                                                            </SelectItem>
-                                                        ))
-                                                    ) : (
-                                                        <SelectItem value="none" disabled>
-                                                            No vehicles available for selected dates
+                                {/* Vehicle Selection */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="vehicle">Select Vehicle *</Label>
+                                    <Select value={selectedVehicle} onValueChange={setSelectedVehicle}>
+                                        <SelectTrigger id="vehicle">
+                                            <SelectValue placeholder="Select vehicle" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {startDate && endDate ? (
+                                                availableVehicles.length > 0 ? (
+                                                    availableVehicles.map((vehicle) => (
+                                                        <SelectItem key={vehicle._id} value={vehicle._id}>
+                                                            {vehicle.name || `${vehicle.make} ${vehicle.model}`} - {vehicle.licensePlate} (
+                                                            {vehicle.capacity} seater)
                                                         </SelectItem>
-                                                    )
+                                                    ))
                                                 ) : (
                                                     <SelectItem value="none" disabled>
-                                                        Please select dates first
+                                                        No vehicles available for selected dates
                                                     </SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                        {startDate && endDate && availableVehicles.length === 0 && (
-                                            <p className="text-sm text-red-500 mt-1">
-                                                No vehicles available for the selected dates. Please choose different dates or use an outsourced
-                                                vehicle.
-                                            </p>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Outsourced Vehicle Details */}
-                                {vehicleSource === "outsourced" && (
-                                    <div className="space-y-4 border rounded-md p-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="outsourcedOwnerName">Owner Name *</Label>
-                                            <Input
-                                                id="outsourcedOwnerName"
-                                                value={outsourcedOwnerName}
-                                                onChange={(e) => setOutsourcedOwnerName(e.target.value)}
-                                                placeholder="Enter vehicle owner's name"
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <Label htmlFor="outsourcedOwnerPhone">Owner Phone *</Label>
-                                            <Input
-                                                id="outsourcedOwnerPhone"
-                                                value={outsourcedOwnerPhone}
-                                                onChange={(e) => setOutsourcedOwnerPhone(e.target.value)}
-                                                placeholder="Enter vehicle owner's phone number"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+                                                )
+                                            ) : (
+                                                <SelectItem value="none" disabled>
+                                                    Please select dates first
+                                                </SelectItem>
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                    {startDate && endDate && availableVehicles.length === 0 && (
+                                        <p className="text-sm text-red-500 mt-1">
+                                            No vehicles available for the selected dates. Please choose different dates.
+                                        </p>
+                                    )}
+                                </div>
 
                                 {/* Customer Selection */}
                                 <div className="space-y-2">
@@ -613,8 +557,20 @@ export default function NewBookingPage() {
                                 <div className="space-y-4 border rounded-md p-4">
                                     <h3 className="font-medium">Commission Information</h3>
 
+                                    {/* Vehicle Ownership */}
+                                    {selectedVehicleData && (
+                                        <div className="space-y-2">
+                                            <Label>Vehicle Ownership</Label>
+                                            <div className="px-3 py-2 border rounded-md bg-muted/30">
+                        <span className="font-medium">
+                          {vehicleOwnership === "owned" ? "Company Owned" : "Outsourced"}
+                        </span>
+                                            </div>
+                                        </div>
+                                    )}
+
                                     {/* Owner Commission */}
-                                    {vehicleSource === "outsourced" && (
+                                    {vehicleOwnership === "outsourced" && (
                                         <div className="space-y-2">
                                             <Label htmlFor="ownerCommission">Owner Commission (KES)</Label>
                                             <div className="flex items-center">
@@ -714,9 +670,8 @@ export default function NewBookingPage() {
                                         <div className="flex justify-between">
                                             <span>Vehicle:</span>
                                             <span>
-                        {vehicleSource === "company"
-                            ? availableVehicles.find((v) => v._id === selectedVehicle)?.name || "Not selected"
-                            : `Outsourced (${outsourcedOwnerName || "Owner not specified"})`}
+                        {availableVehicles.find((v) => v._id === selectedVehicle)?.name || "Not selected"}
+                                                {selectedVehicleData && ` (${vehicleOwnership === "owned" ? "Company Owned" : "Outsourced"})`}
                       </span>
                                         </div>
                                         {additionalServices.map((service, index) =>
@@ -735,7 +690,7 @@ export default function NewBookingPage() {
                                             <span>Balance:</span>
                                             <span>KES {(totalAmount - initialPayment).toLocaleString()}</span>
                                         </div>
-                                        {vehicleSource === "outsourced" && (
+                                        {vehicleOwnership === "outsourced" && ownerCommission > 0 && (
                                             <div className="flex justify-between">
                                                 <span>Owner Commission:</span>
                                                 <span>KES {ownerCommission.toLocaleString()}</span>

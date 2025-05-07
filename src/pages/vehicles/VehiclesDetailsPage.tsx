@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Badge } from "../../components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../components/ui/table"
-import { ChevronLeft, Edit, Calendar, Users, Car, Fuel,  } from "lucide-react"
+import { ChevronLeft, Edit, Calendar, Users, Car, Fuel, User, Phone } from 'lucide-react'
 import VehicleService, { type Vehicle } from "../../services/vehicle-service"
 import { useApi } from "../../hooks/use-api"
 import {
@@ -139,6 +139,12 @@ export default function VehicleDetailsPage() {
             default:
                 return "bg-gray-500"
         }
+    }
+
+    // Helper function to format ownership type for display
+    const formatOwnershipType = (ownership?: string) => {
+        if (!ownership) return "Not specified"
+        return ownership.charAt(0).toUpperCase() + ownership.slice(1)
     }
 
     return (
@@ -397,6 +403,43 @@ export default function VehicleDetailsPage() {
                                         <>
                                             <div className="text-muted-foreground">Road Service License:</div>
                                             <div className="font-medium">{vehicle.roadServiceLicense}</div>
+                                        </>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* New Ownership Information Card */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Ownership Information</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div className="text-muted-foreground">Ownership Type:</div>
+                                    <div className="font-medium">
+                                        <Badge variant={vehicle.ownership === "owned" ? "outline" : "secondary"}>
+                                            {formatOwnershipType(vehicle.ownership)}
+                                        </Badge>
+                                    </div>
+
+                                    {vehicle.ownership === "outsourced" && vehicle.ownerName && (
+                                        <>
+                                            <div className="text-muted-foreground">Owner Name:</div>
+                                            <div className="font-medium flex items-center">
+                                                <User className="h-3.5 w-3.5 mr-1 text-[#e31c39]" />
+                                                {vehicle.ownerName}
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {vehicle.ownership === "outsourced" && vehicle.ownerContact && (
+                                        <>
+                                            <div className="text-muted-foreground">Owner Contact:</div>
+                                            <div className="font-medium flex items-center">
+                                                <Phone className="h-3.5 w-3.5 mr-1 text-[#e31c39]" />
+                                                {vehicle.ownerContact}
+                                            </div>
                                         </>
                                     )}
                                 </div>

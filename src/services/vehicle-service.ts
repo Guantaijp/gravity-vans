@@ -25,6 +25,7 @@ export interface Vehicle {
     imageUrl: string
     createdAt: string
     updatedAt: string
+    ownership: "owned" |"outsourced"
     ownershipType?:string
     ownerName?: string
     ownerContact?: string
