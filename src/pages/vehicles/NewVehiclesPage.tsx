@@ -216,7 +216,7 @@ export default function NewVehiclePage() {
     const getSeatSizeOptions = () => {
         switch (form.type) {
             case "van":
-                return [10, 14].map((size) => (
+                return [10, 14,16].map((size) => (
                     <SelectItem key={size} value={size.toString()}>
                         {size} Seater
                     </SelectItem>
