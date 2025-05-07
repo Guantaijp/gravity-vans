@@ -50,7 +50,7 @@ export default function VehicleEditPage() {
         speedGovernorExpiry: "",
         roadServiceLicense: "",
         imageUrl: "",
-        ownershipType: "owned",
+        ownership: "owned",
         ownerName: "",
         ownerContact: ""
     })
