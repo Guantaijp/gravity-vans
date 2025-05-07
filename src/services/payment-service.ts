@@ -2,8 +2,10 @@ import api from "./api"
 
 export interface Payment {
     _id: string
+    paymentId: string
     booking: string | {
         _id: string
+        bookingId: string
         customer: string | {
             _id: string
             fullName: string

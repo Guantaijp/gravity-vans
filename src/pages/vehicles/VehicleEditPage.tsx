@@ -27,6 +27,7 @@ export default function VehicleEditPage() {
     const [imageFile, setImageFile] = useState<File | null>(null)
 
     const [vehicle, setVehicle] = useState<Vehicle>({
+        dailyRate: 0, vehicleId: "",
         _id: "",
         createdAt: "",
         updatedAt: "",
@@ -51,7 +52,7 @@ export default function VehicleEditPage() {
         imageUrl: "",
         ownershipType: "owned",
         ownerName: "",
-        ownerContact: "",
+        ownerContact: ""
     })
 
     const [featureInput, setFeatureInput] = useState("")

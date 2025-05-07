@@ -2,6 +2,7 @@ import api  from "./api"
 
 export interface Driver {
     _id: string
+    driverId?: string
     name: string
     phoneNumber: string
     email?: string

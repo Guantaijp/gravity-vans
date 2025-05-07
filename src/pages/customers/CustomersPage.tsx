@@ -177,7 +177,7 @@ export default function CustomersPage() {
                                                     </Avatar>
                                                     <div>
                                                         <p className="font-medium">{customer.fullName}</p>
-                                                        <p className="text-xs text-muted-foreground">{customer._id}</p>
+                                                        <p className="text-xs text-muted-foreground">{customer.customerId}</p>
                                                     </div>
                                                 </div>
                                             </TableCell>

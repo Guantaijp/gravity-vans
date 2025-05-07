@@ -21,7 +21,7 @@ export default function AddCustomerPage() {
         phone: "",
         location: "",
         idNumber: "",
-        notes: ""
+        notes: "",
     })
 
     const [errors, setErrors] = useState({
@@ -29,19 +29,17 @@ export default function AddCustomerPage() {
         email: "",
         phone: "",
         location: "",
-        idNumber: ""
+        idNumber: "",
     })
 
-    const { execute: createCustomer, isLoading } = useApi(
-        (data: CustomerInput | undefined) => {
-            if (data) {
-                return CustomerService.create(data)
-            } else {
-                // Handle case where data is undefined (maybe throw an error or return a default)
-                throw new Error("Customer data is required")
-            }
+    const { execute: createCustomer, isLoading } = useApi((data: CustomerInput | undefined) => {
+        if (data) {
+            return CustomerService.create(data)
+        } else {
+            // Handle case where data is undefined (maybe throw an error or return a default)
+            throw new Error("Customer data is required")
         }
-    )
+    })
 
     const validateForm = () => {
         const newErrors = {
@@ -49,7 +47,7 @@ export default function AddCustomerPage() {
             email: "",
             phone: "",
             location: "",
-            idNumber: ""
+            idNumber: "",
         }
 
         let isValid = true
@@ -59,9 +57,7 @@ export default function AddCustomerPage() {
             isValid = false
         }
 
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required"
-        } else if (!/^\S+@\S+\.\S+$/.test(formData.email)) {
+        if (formData.email.trim() && !/^\S+@\S+\.\S+$/.test(formData.email)) {
             newErrors.email = "Please enter a valid email address"
             isValid = false
         }
@@ -71,37 +67,27 @@ export default function AddCustomerPage() {
             isValid = false
         }
 
-        if (!formData.location.trim()) {
-            newErrors.location = "Location is required"
-            isValid = false
-        }
-
-        if (!formData.idNumber.trim()) {
-            newErrors.idNumber = "ID Number is required"
-            isValid = false
-        }
-
         setErrors(newErrors)
         return isValid
     }
 
-    const handleInputChange = (e:any) => {
+    const handleInputChange = (e: any) => {
         const { name, value } = e.target
         setFormData({
             ...formData,
-            [name]: value
+            [name]: value,
         })
 
         // Clear error when user starts typing
         if (name in errors) {
             setErrors({
                 ...errors,
-                [name]: ""
-            });
+                [name]: "",
+            })
         }
     }
 
-    const handleSubmit = async (e:any) => {
+    const handleSubmit = async (e: any) => {
         e.preventDefault()
 
         if (!validateForm()) {
@@ -114,7 +100,7 @@ export default function AddCustomerPage() {
                 description: `${newCustomer.fullName} has been successfully added.`,
             })
             navigate("/customers")
-        } catch (err:any) {
+        } catch (err: any) {
             console.error("Customer creation failed", err)
 
             const message = err?.response?.data?.message || "There was a problem adding the customer."
@@ -122,7 +108,6 @@ export default function AddCustomerPage() {
             toast.error("Failed to add customer", {
                 description: message,
             })
-
         }
     }
 
@@ -145,9 +130,7 @@ export default function AddCustomerPage() {
                 <Card className="mx-auto max-w-2xl">
                     <CardHeader>
                         <CardTitle>Customer Information</CardTitle>
-                        <CardDescription>
-                            Enter customer details to add them to your database.
-                        </CardDescription>
+                        <CardDescription>Enter customer details to add them to your database.</CardDescription>
                     </CardHeader>
 
                     <form onSubmit={handleSubmit}>
@@ -176,7 +159,7 @@ export default function AddCustomerPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="email" className="flex items-center gap-2">
                                         <Mail className="h-4 w-4" />
-                                        Email Address <span className="text-red-500">*</span>
+                                        Email Address
                                     </Label>
                                     <Input
                                         id="email"
@@ -217,7 +200,7 @@ export default function AddCustomerPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="location" className="flex items-center gap-2">
                                         <MapPin className="h-4 w-4" />
-                                        Location <span className="text-red-500">*</span>
+                                        Location
                                     </Label>
                                     <Input
                                         id="location"
@@ -237,7 +220,7 @@ export default function AddCustomerPage() {
                                 <div className="space-y-2">
                                     <Label htmlFor="idNumber" className="flex items-center gap-2">
                                         <FileText className="h-4 w-4" />
-                                        ID Number <span className="text-red-500">*</span>
+                                        ID Number
                                     </Label>
                                     <Input
                                         id="idNumber"
@@ -253,23 +236,14 @@ export default function AddCustomerPage() {
                                         </p>
                                     )}
                                 </div>
-
                             </div>
                         </CardContent>
 
                         <CardFooter className="flex justify-between pt-5">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => navigate("/customers")}
-                            >
+                            <Button type="button" variant="outline" onClick={() => navigate("/customers")}>
                                 Cancel
                             </Button>
-                            <Button
-                                type="submit"
-                                className="bg-[#e31c39] hover:bg-[#e31c39]/90"
-                                disabled={isLoading}
-                            >
+                            <Button type="submit" className="bg-[#e31c39] hover:bg-[#e31c39]/90" disabled={isLoading}>
                                 <Save className="mr-2 h-4 w-4" />
                                 {isLoading ? "Saving..." : "Save Customer"}
                             </Button>

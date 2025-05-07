@@ -77,12 +77,12 @@ export default function BookingDetailsPage() {
 
     // Calculate duration in days
     const calculateDuration = (start: string, end: string) => {
-        const startDate = new Date(start)
-        const endDate = new Date(end)
-        const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        return diffDays
-    }
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // inclusive of both dates
+        return diffDays;
+    };
 
     if (loading) {
         return (
@@ -151,7 +151,7 @@ export default function BookingDetailsPage() {
                     <div className="lg:col-span-2 space-y-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h2 className="text-xl font-bold">Booking #{booking._id.substring(0, 8)}</h2>
+                                <h2 className="text-xl font-bold">Booking {booking.bookingId}</h2>
                                 <p className="text-sm text-muted-foreground">
                                     Created on {new Date(booking.timeline[0]?.date || new Date()).toLocaleDateString()}
                                 </p>
@@ -172,7 +172,7 @@ export default function BookingDetailsPage() {
                                         <div>
                                             <span className="font-medium">{customerName}</span>
                                             {typeof booking.customer !== "string" && booking.customer._id && (
-                                                <span className="text-xs text-muted-foreground ml-2">({booking.customer._id})</span>
+                                                <span className="text-xs text-muted-foreground ml-2">({booking.customer.customerId})</span>
                                             )}
                                         </div>
                                         {customerEmail && <div className="text-muted-foreground">{customerEmail}</div>}
@@ -200,7 +200,7 @@ export default function BookingDetailsPage() {
                                         <div>
                                             <span className="font-medium">{vehicleName}</span>
                                             {typeof booking.vehicle !== "string" && booking.vehicle?._id && (
-                                                <span className="text-xs text-muted-foreground ml-2">({booking.vehicle?._id})</span>
+                                                <span className="text-xs text-muted-foreground ml-2">({booking.vehicle?.vehicleId})</span>
                                             )}
                                         </div>
                                         {vehicleType && <div className="text-muted-foreground">{vehicleType}</div>}

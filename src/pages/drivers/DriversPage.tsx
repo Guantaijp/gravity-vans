@@ -213,7 +213,7 @@ export default function DriversPage() {
                                         <TableHead>License Number</TableHead>
                                         <TableHead>PSV Number</TableHead>
                                         <TableHead>Status</TableHead>
-                                        <TableHead>Hire Date</TableHead>
+                                        {/*<TableHead>Hire Date</TableHead>*/}
                                         <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -232,7 +232,7 @@ export default function DriversPage() {
                                                     </Avatar>
                                                     <div>
                                                         <p className="font-medium">{driver.name}</p>
-                                                        <p className="text-xs text-muted-foreground">{driver._id}</p>
+                                                        <p className="text-xs text-muted-foreground">{driver.driverId}</p>
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -250,7 +250,7 @@ export default function DriversPage() {
                                                     {driver.status.charAt(0).toUpperCase() + driver.status.slice(1)}
                                                 </Badge>
                                             </TableCell>
-                                            <TableCell>{new Date(driver.hireDate).toLocaleDateString()}</TableCell>
+                                            {/*<TableCell>{new Date(driver.hireDate).toLocaleDateString()}</TableCell>*/}
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>

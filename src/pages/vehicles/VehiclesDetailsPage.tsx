@@ -272,7 +272,7 @@ export default function VehicleDetailsPage() {
                                                     {bookingHistory && bookingHistory.length > 0 ? (
                                                         bookingHistory.map((booking) => (
                                                             <TableRow key={booking._id || booking.id}>
-                                                                <TableCell className="font-medium">{booking._id || booking.id}</TableCell>
+                                                                <TableCell className="font-medium">{booking.bookingId || booking.bookingId}</TableCell>
                                                                 <TableCell>{booking.customer?.fullName || booking.customerName || "N/A"}</TableCell>
                                                                 <TableCell>{new Date(booking.startDate).toLocaleDateString()}</TableCell>
                                                                 <TableCell>{new Date(booking.endDate).toLocaleDateString()}</TableCell>

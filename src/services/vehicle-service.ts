@@ -2,6 +2,7 @@ import api from "./api"
 
 export interface Vehicle {
     _id: string
+    vehicleId: string
     name: string
     make: string
     model: string

@@ -64,29 +64,34 @@ export default function PaymentsPage() {
     }
 
     // Filter payments based on search term and status filter
+// Filter payments based on search term and status filter
     const filteredPayments = payments
         ? payments.filter((payment) => {
             const search = searchTerm.toLowerCase()
 
-            const matchesId = payment._id.toLowerCase().includes(search)
+            // Safely check if _id is defined and use toLowerCase
+            const matchesId = payment._id && payment._id.toLowerCase().includes(search)
 
+            // Check booking object and its nested properties before calling toLowerCase
             const bookingMatches =
                 typeof payment.booking === "object" && payment.booking !== null
-                    ? payment.booking._id?.toLowerCase().includes(search) ||
-                    (typeof payment.booking.customer === "object" &&
-                        "fullName" in payment.booking.customer &&
-                        payment.booking.customer.fullName?.toLowerCase().includes(search))
-                    : typeof payment.booking === "string" && payment.booking.toLowerCase().includes(search)
+                    ? (payment.booking._id?.toLowerCase().includes(search) ||
+                        (typeof payment.booking.customer === "object" &&
+                            "fullName" in payment.booking.customer &&
+                            payment.booking.customer.fullName?.toLowerCase().includes(search)))
+                    : (typeof payment.booking === "string" && payment.booking.toLowerCase().includes(search))
 
+            // Safely check if reference is defined before calling toLowerCase
             const referenceMatches = payment.reference?.toLowerCase().includes(search) ?? false
 
+            // Determine if the payment matches the search term or status filter
             const matchesSearch = matchesId || bookingMatches || referenceMatches
-
             const matchesStatus = filterStatus === "all" || payment.status?.toLowerCase() === filterStatus.toLowerCase()
 
             return matchesSearch && matchesStatus
         })
         : []
+
 
     // Calculate summary statistics
     const totalPayments = payments ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0
@@ -320,10 +325,11 @@ export default function PaymentsPage() {
                                         ) : (
                                             filteredPayments.map((payment) => (
                                                 <TableRow key={payment._id}>
-                                                    <TableCell className="font-medium">{payment._id}</TableCell>
+                                                    <TableCell className="font-medium">{payment.paymentId}</TableCell>
                                                     <TableCell>
                                                         <Link to={`/bookings/${getBookingId(payment)}`} className="text-primary hover:underline">
                                                             {getBookingId(payment)}
+                                                            {/*{payment.booking?.bookingId}*/}
                                                         </Link>
                                                     </TableCell>
                                                     <TableCell>{new Date(payment.paymentDate ?? "").toLocaleDateString()}</TableCell>

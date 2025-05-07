@@ -188,7 +188,7 @@ export default function BookingsPage() {
 
         return (Array.isArray(filteredBookings) ? filteredBookings : []).map((booking) => (
             <TableRow key={booking._id}>
-                <TableCell className="font-medium">{booking._id.substring(0, 8)}</TableCell>
+                <TableCell className="font-medium">{booking.bookingId}</TableCell>
                 <TableCell>
                     {typeof booking.customer === "string"
                         ? booking.customer

@@ -426,7 +426,7 @@ Thank you for choosing Gravity Vans!
                                         <h2 className="text-xl font-bold text-red-600 mb-1">INVOICE</h2>
                                         <div className="text-xs">
                                             <p className="font-medium">Invoice Number: {invoiceNumber}</p>
-                                            <p>Booking ID: {booking._id}</p>
+                                            <p>Booking ID: {booking.bookingId}</p>
                                             <p>Date: {currentDate}</p>
                                             <p>Due Date: {dueDate}</p>
                                         </div>

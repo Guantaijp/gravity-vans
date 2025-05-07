@@ -2,9 +2,10 @@ import api from "./api"
 
 export interface Booking {
     _id: string
-    customer: string | { _id: string; fullName: string; email: string; phone: string }
-    vehicle: string | { _id: string; name: string; licensePlate: string; type: string; capacity: string }
-    driver?: string | { _id: string; name: string; phone: string }
+    bookingId: string
+    customer: string | { _id: string; customerId:string; fullName: string; email: string; phone: string }
+    vehicle: string | { _id: string; vehicleId:string; name: string; licensePlate: string; type: string; capacity: string }
+    driver?: string | { _id: string; driverId:string; name: string; phone: string }
     bookedBy?: string | { _id: string; name: string; email: string }
     startDate: string
     endDate: string
@@ -41,6 +42,7 @@ export interface Booking {
 
 export interface Payment {
     _id: string
+    bookingId: string
     booking: string
     amount: number
     method: string
