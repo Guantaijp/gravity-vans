@@ -346,7 +346,8 @@ export default function NewBookingPage() {
                                                     availableVehicles.map((vehicle) => (
                                                         <SelectItem key={vehicle._id} value={vehicle._id}>
                                                             {vehicle.name || `${vehicle.make} ${vehicle.model}`} - {vehicle.licensePlate} (
-                                                            {vehicle.capacity} seater)
+                                                            {vehicle.capacity} seater) -{" "}
+                                                            {vehicle.ownership === "owned" ? "Company Owned" : "Outsourced"}
                                                         </SelectItem>
                                                     ))
                                                 ) : (

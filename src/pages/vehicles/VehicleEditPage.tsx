@@ -27,7 +27,8 @@ export default function VehicleEditPage() {
     const [imageFile, setImageFile] = useState<File | null>(null)
 
     const [vehicle, setVehicle] = useState<Vehicle>({
-        dailyRate: 0, vehicleId: "",
+        dailyRate: 0,
+        vehicleId: "",
         _id: "",
         createdAt: "",
         updatedAt: "",
@@ -52,7 +53,7 @@ export default function VehicleEditPage() {
         imageUrl: "",
         ownership: "owned",
         ownerName: "",
-        ownerContact: ""
+        ownerContact: "",
     })
 
     const [featureInput, setFeatureInput] = useState("")
@@ -62,7 +63,7 @@ export default function VehicleEditPage() {
     const [isUploading, setIsUploading] = useState(false)
 
     // Fetch vehicle data using the service
-    const { execute: fetchVehicle} = useApi((id) => {
+    const { execute: fetchVehicle } = useApi((id) => {
         if (!id) return Promise.reject(new Error("ID is required"))
         return VehicleService.getById(id)
     })
@@ -185,7 +186,7 @@ export default function VehicleEditPage() {
         if (!vehicle.licensePlate) newErrors.licensePlate = "License plate is required"
 
         // Additional validation for outsourced vehicles
-        if (vehicle.ownershipType === "outsourced") {
+        if (vehicle.ownership === "outsourced") {
             if (!vehicle.ownerName) newErrors.ownerName = "Owner name is required"
             if (!vehicle.ownerContact) newErrors.ownerContact = "Owner contact is required"
         }
@@ -232,11 +233,10 @@ export default function VehicleEditPage() {
                 speedGovernorExpiry: vehicle.speedGovernorExpiry || "",
                 description: vehicle.description || "",
                 features: vehicle.features || [],
-            }
-
-            // If it's outsourced, add owner details to the description
-            if (vehicle.ownershipType === "outsourced" && vehicle.ownerName && vehicle.ownerContact) {
-                vehicleData.description = `Owner: ${vehicle.ownerName}, Contact: ${vehicle.ownerContact}\n${vehicleData.description}`
+                // Add ownership fields directly to the vehicle data
+                ownership: vehicle.ownership,
+                ownerName: vehicle.ownership === "outsourced" ? vehicle.ownerName : "",
+                ownerContact: vehicle.ownership === "outsourced" ? vehicle.ownerContact : "",
             }
 
             // Add each field individually to FormData
@@ -293,7 +293,7 @@ export default function VehicleEditPage() {
                     // Try to parse the error as JSON if possible
                     const errorData = JSON.parse(errorText)
                     errorMessage = errorData.message || errorMessage
-                } catch (e:any) {
+                } catch (e: any) {
                     // If parsing fails, use the raw text
                     errorMessage = errorText || errorMessage
                 }
@@ -615,11 +615,11 @@ export default function VehicleEditPage() {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="ownershipType">Ownership Type</Label>
+                                        <Label htmlFor="ownership">Ownership Type</Label>
                                         <Select
-                                            value={vehicle.ownershipType}
-                                            onValueChange={(value) => handleSelectChange("ownershipType", value)}
-                                            defaultValue={vehicle.ownershipType}
+                                            value={vehicle.ownership}
+                                            onValueChange={(value) => handleSelectChange("ownership", value)}
+                                            defaultValue={vehicle.ownership}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select ownership type" />
@@ -631,7 +631,7 @@ export default function VehicleEditPage() {
                                         </Select>
                                     </div>
 
-                                    {vehicle.ownershipType === "outsourced" && (
+                                    {vehicle.ownership === "outsourced" && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div className="space-y-2">
                                                 <Label htmlFor="ownerName" className={errors.ownerName && formSubmitted ? "text-red-500" : ""}>
